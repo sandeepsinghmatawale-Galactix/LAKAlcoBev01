@@ -6,20 +6,14 @@ import java.util.Map;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
+import com.barinventory.config.SecurityUtils;
 import com.barinventory.dtos.WellClosingRequest;
-import com.barinventory.entities.InventorySession;
 import com.barinventory.entities.InventoryStatus;
 import com.barinventory.entities.Well;
 import com.barinventory.entities.WellInventory;
-import com.barinventory.repos.InventorySessionRepository;
-import com.barinventory.repos.WellInventoryRepository;
-import com.barinventory.repos.WellRepository;
+import com.barinventory.services.BarPriceService;
 import com.barinventory.services.WellInventoryService;
 import com.barinventory.services.WellService;
 
@@ -30,130 +24,127 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/well")
 public class WellInventoryController {
 
-	private final WellInventoryService wellInventoryService;
-	private final WellService wellService;
-	private final WellInventoryRepository wellInventoryRepo;
-	private final WellRepository wellRepo;
-	private final InventorySessionRepository sessionRepo;
+    private final WellService wellService;
+    private final WellInventoryService wellInventoryService;
+    private final BarPriceService barPriceService;
 
-	/*
-	 * SELECT WELL PAGE
-	 */
+    // GET /well/select/{sessionId}
+    @GetMapping("/select/{sessionId}")
+    public String selectWellPage(@PathVariable Long sessionId, Model model) {
+        Long barId = SecurityUtils.getBarId();
 
-	@GetMapping("/select/{sessionId}")
-	public String selectWellPage(@PathVariable Long sessionId, Model model) {
+        List<Well> wells = wellService.getWellsByBar(barId);
+        Map<Long, InventoryStatus> wellStatusMap =
+                wellInventoryService.getWellStatuses(barId, sessionId);
+        boolean completed =
+                wellInventoryService.isSessionCompleted(barId, sessionId);
+        int progress =
+                wellInventoryService.getSessionProgress(barId, sessionId);
 
-		List<Well> wells = wellService.getAllWells();
+        model.addAttribute("wells", wells);
+        model.addAttribute("sessionId", sessionId);
+        model.addAttribute("barId", barId);
+        model.addAttribute("wellStatusMap", wellStatusMap);
+        model.addAttribute("sessionCompleted", completed);
+        model.addAttribute("progress", progress);
 
-		model.addAttribute("wells", wells);
-		model.addAttribute("sessionId", sessionId);
+        return "well/well-selection";
+    }
 
-		// ✅ ADD HERE (this is the correct place)
-		Map<Long, InventoryStatus> wellStatusMap = wellInventoryService.getWellStatuses(sessionId);
+    // POST /well/initialize/{sessionId}/{wellId}
+    @PostMapping("/initialize/{sessionId}/{wellId}")
+    public String initializeWell(
+            @PathVariable Long sessionId,
+            @PathVariable Long wellId
+    ) {
+        Long barId = SecurityUtils.getBarId();
 
-		model.addAttribute("wellStatusMap", wellStatusMap);
+        if (wellInventoryService.isSessionCompleted(barId, sessionId)) {
+            return "redirect:/well/select/" + sessionId;
+        }
 
-		// existing logic
-		boolean completed = wellInventoryService.isSessionCompleted(sessionId);
-		model.addAttribute("sessionCompleted", completed);
+        List<WellInventory> existing =
+                wellInventoryService.getWellInventory(barId, sessionId, wellId);
+        boolean wellCompleted = !existing.isEmpty()
+                && existing.stream()
+                           .allMatch(i -> i.getStatus() == InventoryStatus.COMPLETED);
 
-		int progress = wellInventoryService.getSessionProgress(sessionId);
-		model.addAttribute("progress", progress);
+        if (wellCompleted) {
+            return "redirect:/well/select/" + sessionId;
+        }
 
-		return "well/well-selection";
-	}
+        wellInventoryService.initializeWellInventory(barId, sessionId, wellId);
+        return "redirect:/well/" + sessionId + "/" + wellId;
+    }
 
-	/*
-	 * INITIALIZE WELL INVENTORY
-	 */
-	@PostMapping("/initialize/{sessionId}/{wellId}")
-	public String initializeWell(@PathVariable Long sessionId, @PathVariable Long wellId) {
+    // GET /well/{sessionId}/{wellId}
+    @GetMapping("/{sessionId}/{wellId}")
+    public String wellInventoryPage(
+            @PathVariable Long sessionId,
+            @PathVariable Long wellId,
+            Model model
+    ) {
+        Long barId = SecurityUtils.getBarId();
 
-		// 🔒 SESSION LOCK
-		if (wellInventoryService.isSessionCompleted(sessionId)) {
-			return "redirect:/well/select/" + sessionId;
-		}
+        if (wellInventoryService.isSessionCompleted(barId, sessionId)) {
+            return "redirect:/well/select/" + sessionId;
+        }
 
-		// 🔒 WELL LOCK
-		if (wellInventoryService.isWellCompleted(sessionId, wellId)) {
-			return "redirect:/well/select/" + sessionId;
-		}
+        List<WellInventory> existing =
+                wellInventoryService.getWellInventory(barId, sessionId, wellId);
+        boolean completed = !existing.isEmpty()
+                && existing.stream()
+                           .allMatch(i -> i.getStatus() == InventoryStatus.COMPLETED);
 
-		// ✅ Delegates to service (correct architecture)
-		wellInventoryService.initializeWellInventory(sessionId, wellId);
+        if (completed) {
+            return "redirect:/well/select/" + sessionId;
+        }
 
-		return "redirect:/well/" + sessionId + "/" + wellId;
-	}
+        List<WellInventory> inventory =
+                wellInventoryService.getWellInventory(barId, sessionId, wellId);
+        Map<Long, Double> priceMap = barPriceService.getPriceMap(barId);
 
-	// -------------------------------
-	// continue insert logic
-	/*
-	 * OPEN WELL INVENTORY PAGE
-	 */
+        model.addAttribute("wellInventory", inventory);
+        model.addAttribute("sessionId", sessionId);
+        model.addAttribute("wellId", wellId);
+        model.addAttribute("barId", barId);
+        model.addAttribute("priceMap", priceMap);
 
-	@GetMapping("/{sessionId}/{wellId}")
-	public String wellInventoryPage(@PathVariable Long sessionId, @PathVariable Long wellId, Model model) {
+        return "well/well-inventory";
+    }
 
-		// 🔒 SESSION LOCK
-		if (wellInventoryService.isSessionCompleted(sessionId)) {
-			return "redirect:/well/select/" + sessionId;
-		}
+    // POST /well/closing/{sessionId}/{wellId}
+    @PostMapping("/closing/{sessionId}/{wellId}")
+    public String updateClosing(
+            @PathVariable Long sessionId,
+            @PathVariable Long wellId,
+            @RequestParam List<Long> brandId,
+            @RequestParam List<Integer> closingStock
+    ) {
+        Long barId = SecurityUtils.getBarId();
 
-		// 🔒 WELL LOCK (single source of truth)
-		if (wellInventoryService.isWellCompleted(sessionId, wellId)) {
-			return "redirect:/well/select/" + sessionId;
-		}
+        List<WellClosingRequest> requests = new ArrayList<>();
+        for (int i = 0; i < brandId.size(); i++) {
+            WellClosingRequest req = new WellClosingRequest();
+            req.setBrandId(brandId.get(i));
+            req.setClosingStock(closingStock.get(i));
+            requests.add(req);
+        }
 
-		// ✅ Fetch inventory
-		List<WellInventory> inventory = wellInventoryService.getWellInventory(sessionId, wellId);
+        wellInventoryService.updateWellClosing(barId, sessionId, wellId, requests);
 
-		model.addAttribute("wellInventory", inventory);
-		model.addAttribute("sessionId", sessionId);
-		model.addAttribute("wellId", wellId);
+        Long nextWellId =
+                wellInventoryService.getNextPendingWell(barId, sessionId);
 
-		return "well/well-inventory";
-	}
-	/*
-	 * SAVE WELL CLOSING
-	 */
+        if (nextWellId != null) {
+            List<WellInventory> nextInv =
+                    wellInventoryService.getWellInventory(barId, sessionId, nextWellId);
+            if (nextInv.isEmpty()) {
+                wellInventoryService.initializeWellInventory(barId, sessionId, nextWellId);
+            }
+            return "redirect:/well/" + sessionId + "/" + nextWellId;
+        }
 
-	@PostMapping("/closing/{sessionId}/{wellId}")
-	public String updateClosing(
-	        @PathVariable Long sessionId,
-	        @PathVariable Long wellId,
-	        @RequestParam List<Long> brandId,
-	        @RequestParam List<Integer> closingStock
-	) {
-
-	    List<WellClosingRequest> requests = new ArrayList<>();
-
-	    for (int i = 0; i < brandId.size(); i++) {
-	        WellClosingRequest req = new WellClosingRequest();
-	        req.setBrandId(brandId.get(i));
-	        req.setClosingStock(closingStock.get(i));
-	        requests.add(req);
-	    }
-
-	    // ✅ SAVE CURRENT WELL
-	    wellInventoryService.updateWellClosing(sessionId, wellId, requests);
-
-	    // ✅ GET NEXT WELL
-	    Long nextWellId = wellInventoryService.getNextPendingWell(sessionId);
-
-	    if (nextWellId != null) {
-
-	        // ✅ ONLY initialize if NOT already created
-	        List<WellInventory> nextWellInventory =
-	                wellInventoryRepo.findBySessionSessionIdAndWellWellId(sessionId, nextWellId);
-
-	        if (nextWellInventory.isEmpty()) {
-	            wellInventoryService.initializeWellInventory(sessionId, nextWellId);
-	        }
-
-	        return "redirect:/well/" + sessionId + "/" + nextWellId;
-	    }
-
-	    // ✅ FINAL RETURN (VERY IMPORTANT)
-	    return "redirect:/well/select/" + sessionId;
-	}
+        return "redirect:/well/select/" + sessionId;
+    }
 }

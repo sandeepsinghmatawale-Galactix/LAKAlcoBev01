@@ -30,15 +30,20 @@ public class DistributionService {
 	/*
 	 * CREATE DISTRIBUTION
 	 */
-	public Distribution createDistribution(Long sessionId) {
-		InventorySession session = sessionRepo.findById(sessionId)
-				.orElseThrow(() -> new RuntimeException("Session not found: " + sessionId));
+	public Distribution createDistribution(Long barId, Long sessionId) {
+	    InventorySession session = sessionRepo.findById(sessionId)
+	            .orElseThrow(() -> new RuntimeException("Session not found: " + sessionId));
 
-		Distribution distribution = new Distribution();
-		distribution.setSession(session);
-		distribution.setDistributedAt(LocalDateTime.now());
+	    // ✅ bar ownership check
+	    if (!session.getBar().getBarId().equals(barId)) {
+	        throw new RuntimeException("Session does not belong to this bar");
+	    }
 
-		return distributionRepo.save(distribution);
+	    Distribution distribution = new Distribution();
+	    distribution.setSession(session);
+	    distribution.setDistributedAt(LocalDateTime.now());
+
+	    return distributionRepo.save(distribution);
 	}
 
 	/*

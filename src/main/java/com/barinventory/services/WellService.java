@@ -25,4 +25,10 @@ public class WellService {
         return wellRepository.findById(wellId)
                 .orElseThrow(() -> new RuntimeException("Well not found"));
     }
+    
+    public List<Well> getWellsByBar(Long barId) {
+        return wellRepository.findByBar_BarId(barId);
+    }
+
+     
 }

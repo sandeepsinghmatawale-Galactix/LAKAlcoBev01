@@ -1,5 +1,4 @@
 package com.barinventory.services;
- 
 
 import java.util.List;
 
@@ -14,14 +13,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class BrandService {
 
-    private final BrandRepository brandRepository;
+	private final BrandRepository brandRepository;
 
-    public List<Brand> getAllBrands() {
-        return brandRepository.findAll();
-    }
+	public List<Brand> getAllBrands() {
+		return brandRepository.findAll();
+	}
 
-    public Brand getBrandById(Long brandId) {
-        return brandRepository.findById(brandId)
-                .orElseThrow(() -> new RuntimeException("Brand not found"));
-    }
+	public Brand getBrandById(Long brandId) {
+		return brandRepository.findById(brandId).orElseThrow(() -> new RuntimeException("Brand not found"));
+	}
+
+	// ✅ add this — called from DistributionController
+	public List<Brand> getBrandsByBar(Long barId) {
+		return brandRepository.findByBarBarId(barId);
+	}
 }

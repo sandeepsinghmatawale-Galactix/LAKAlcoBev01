@@ -12,42 +12,31 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <script>
-        function calculateWellSale(row) {
+        function calculateRow(row) {
             let opening = parseInt(row.querySelector('.opening').value) || 0;
             let received = parseInt(row.querySelector('.received').value) || 0;
             let closing = parseInt(row.querySelector('.closing').value) || 0;
+            let price = parseFloat(row.querySelector('.price').value) || 0;
 
-            row.querySelector('.sale').value = (opening + received) - closing;
+            let sale = (opening + received) - closing;
+            let amount = sale * price;
+
+            row.querySelector('.sale').value = sale;
+            row.querySelector('.amount').value = amount.toFixed(2);
         }
 
-        function initSales() {
+        function initRows() {
             document.querySelectorAll("tbody tr").forEach(row => {
-                calculateWellSale(row);
+                calculateRow(row);
             });
         }
 
-        window.onload = initSales;
+        window.onload = initRows;
     </script>
 
     <style>
-        body {
-            background: #f5f7fb;
-        }
-
-        .card {
-            border-radius: 16px;
-        }
-
-        .table th {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .table td {
-            vertical-align: middle;
-        }
-
+        body { background: #f5f7fb; }
+        .card { border-radius: 16px; }
         .sticky-header {
             position: sticky;
             top: 0;
@@ -55,96 +44,60 @@
             background: white;
             border-bottom: 1px solid #eee;
         }
-
-        .badge-completed {
-            background: #198754;
-        }
-
-        .badge-progress {
-            background: #ffc107;
-            color: black;
-        }
-
-        .progress {
-            height: 10px;
-        }
-
-        .table-success {
-            background-color: #e9f7ef !important;
-        }
-
-        .btn-lg {
-            font-size: 18px;
-            padding: 12px;
-        }
+        .badge-completed { background: #198754; }
+        .badge-progress { background: #ffc107; color: black; }
     </style>
 </head>
 
 <body>
 
-<!-- 🔝 HEADER -->
+<!-- HEADER -->
 <div class="sticky-header py-3 px-4 shadow-sm">
     <div class="d-flex justify-content-between align-items-center">
 
         <div>
-            <h4 class="mb-0">
-                🧾 Well Closing Entry
-            </h4>
-            <small class="text-muted">
-                Session ID: <strong th:text="${sessionId}"></strong>
+            <h4 class="mb-0">🧾 Well Closing Entry</h4>
+            <small>
+                Bar: <b th:text="${barId}"></b> |
+                Session: <b th:text="${sessionId}"></b>
             </small>
         </div>
 
         <div class="d-flex gap-2">
-
-            <a th:href="@{'/well/select/' + ${sessionId}}"
+            <a th:href="@{'/well/select/' + ${barId} + '/' + ${sessionId}}"
                class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back
+                ← Back
             </a>
 
             <a th:href="@{'/sessions/summary/' + ${sessionId}}"
                class="btn btn-primary">
-                <i class="bi bi-bar-chart"></i> Report
+                Report
             </a>
-
         </div>
 
     </div>
 </div>
 
-<!-- 📦 MAIN -->
+<!-- MAIN -->
 <div class="container mt-4">
 
-    <!-- 📊 PROGRESS -->
-    <div class="card shadow-sm mb-3 p-3">
-
+    <!-- PROGRESS -->
+    <div class="card p-3 mb-3">
         <div class="d-flex justify-content-between">
-            <span class="fw-semibold">Session Progress</span>
+            <span>Progress</span>
             <span th:text="${progress + '%'}"></span>
         </div>
-
         <div class="progress mt-2">
             <div class="progress-bar bg-success"
-                 role="progressbar"
-                 th:style="'width:' + ${progress} + '%'">
-            </div>
+                 th:style="'width:' + ${progress} + '%'"></div>
         </div>
-
     </div>
 
-    <!-- ℹ INFO -->
-    <div class="alert alert-info d-flex align-items-center gap-2">
-        <i class="bi bi-info-circle"></i>
-        <span>
-            After saving, you will be automatically redirected to the next pending well.
-        </span>
-    </div>
+    <!-- FORM -->
+    <div class="card p-3 shadow">
 
-    <!-- 🧾 FORM CARD -->
-    <div class="card shadow p-3">
-
-        <form th:action="@{/well/closing/{sessionId}/{wellId}
-                (sessionId=${sessionId}, wellId=${wellId})}"
+        <form th:action="@{/well/closing/{barId}/{sessionId}/{wellId}
+            (barId=${barId}, sessionId=${sessionId}, wellId=${wellId})}"
               method="post">
 
             <div class="table-responsive">
@@ -158,38 +111,33 @@
                         <th>Received</th>
                         <th>Closing</th>
                         <th>Sale</th>
+                        <th>Price (₹)</th>
+                        <th>Amount (₹)</th>
                         <th>Status</th>
                     </tr>
                     </thead>
 
                     <tbody>
 
-                    <tr th:each="item : ${wellInventory}"
-                        th:classappend="${item.status.name() == 'COMPLETED'} ? 'table-success'">
+                    <tr th:each="item : ${wellInventory}">
 
                         <!-- BRAND -->
                         <td>
-                            <div class="fw-semibold"
-                                 th:text="${item.brand.brandName}">
-                            </div>
-
-                            <input type="hidden"
-                                   name="brandId"
+                            <span th:text="${item.brand.brandName}"></span>
+                            <input type="hidden" name="brandId"
                                    th:value="${item.brand.brandId}">
                         </td>
 
                         <!-- OPENING -->
                         <td>
                             <input class="form-control opening"
-                                   th:value="${item.openingStock}"
-                                   readonly>
+                                   th:value="${item.openingStock}" readonly>
                         </td>
 
                         <!-- RECEIVED -->
                         <td>
                             <input class="form-control received"
-                                   th:value="${item.receivedStock}"
-                                   readonly>
+                                   th:value="${item.receivedStock}" readonly>
                         </td>
 
                         <!-- CLOSING -->
@@ -198,14 +146,26 @@
                                    name="closingStock"
                                    type="number"
                                    min="0"
-                                   required
                                    th:readonly="${item.status.name() == 'COMPLETED'}"
-                                   oninput="calculateWellSale(this.closest('tr'))">
+                                   oninput="calculateRow(this.closest('tr'))"
+                                   required>
                         </td>
 
                         <!-- SALE -->
                         <td>
                             <input class="form-control sale" readonly>
+                        </td>
+
+                        <!-- PRICE -->
+                        <td>
+                            <input class="form-control price"
+                                   th:value="${priceMap[item.brand.brandId]}"
+                                   readonly>
+                        </td>
+
+                        <!-- AMOUNT -->
+                        <td>
+                            <input class="form-control amount" readonly>
                         </td>
 
                         <!-- STATUS -->
@@ -224,19 +184,13 @@
                     </tr>
 
                     </tbody>
-
                 </table>
 
             </div>
 
-            <!-- SAVE BUTTON -->
-            <div class="mt-3">
-                <button type="submit"
-                        class="btn btn-success btn-lg w-100">
-                    <i class="bi bi-check-circle"></i>
-                    Save & Continue →
-                </button>
-            </div>
+            <button class="btn btn-success w-100 mt-3">
+                Save & Continue →
+            </button>
 
         </form>
 

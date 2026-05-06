@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,6 +28,10 @@ public class WellInventory {
     @ManyToOne
     @JoinColumn(name="session_id")
     private InventorySession session;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bar_id", nullable = false)
+    private Bar bar;
 
     @ManyToOne
     @JoinColumn(name="well_id")

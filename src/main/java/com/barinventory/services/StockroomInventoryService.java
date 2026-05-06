@@ -37,6 +37,7 @@ public class StockroomInventoryService {
 
 			current.setSession(currentSession);
 			current.setBrand(previous.getBrand());
+			current.setBar(currentSession.getBar());
 			current.setOpeningStock(previous.getClosingStock());
 			current.setReceivedStock(0);
 			current.setClosingStock(0);
@@ -50,29 +51,43 @@ public class StockroomInventoryService {
 	    stockroomRepo.save(stock);
 	}
 	
+	public List<StockroomInventory> getStockroomByBarAndSession(Long barId, Long sessionId) {
+	    return stockroomRepo.findByBarBarIdAndSessionSessionId(barId, sessionId);
+	}
+	
 	public List<StockroomInventory> getStockroomBySession(Long sessionId) {
 		return stockroomRepo.findBySessionSessionId(sessionId);
 	}
 
-	public void updateClosingStock(Long sessionId, List<StockroomClosingRequest> requests) {
+	 
+	// rename from updateClosingStock → updateStockroomClosing, add barId
+	public void updateStockroomClosing(Long barId, Long sessionId,
+	                                    List<StockroomClosingRequest> requests) {
 
-		for (StockroomClosingRequest request : requests) {
+	    // ✅ validate session belongs to bar
+	    InventorySession session = sessionRepo.findById(sessionId)
+	            .orElseThrow(() -> new RuntimeException("Session not found"));
 
-			StockroomInventory stock = stockroomRepo
-					.findBySessionSessionIdAndBrandBrandId(sessionId, request.getBrandId()).orElseThrow();
+	    if (!session.getBar().getBarId().equals(barId)) {
+	        throw new RuntimeException("Session does not belong to this bar");
+	    }
 
-			int totalAvailable = stock.getOpeningStock() + stock.getReceivedStock();
+	    for (StockroomClosingRequest request : requests) {
+	        StockroomInventory stock = stockroomRepo
+	                .findBySessionSessionIdAndBrandBrandId(sessionId, request.getBrandId())
+	                .orElseThrow(() -> new RuntimeException("Stock not found"));
 
-			if (request.getClosingStock() > totalAvailable) {
-				throw new RuntimeException("Invalid closing stock");
-			}
+	        int totalAvailable = stock.getOpeningStock() + stock.getReceivedStock();
 
-			stock.setClosingStock(request.getClosingStock());
+	        if (request.getClosingStock() > totalAvailable) {
+	            throw new RuntimeException("Invalid closing stock for brand: "
+	                    + stock.getBrand().getBrandName());
+	        }
 
-			stock.setSaleStock(totalAvailable - request.getClosingStock());
-
-			stockroomRepo.save(stock);
-		}
+	        stock.setClosingStock(request.getClosingStock());
+	        stock.setSaleStock(totalAvailable - request.getClosingStock());
+	        // ✅ no explicit save() needed — JPA dirty tracking handles it
+	    }
 	}
 	
 	public Map<Long, Integer> getSaleStockMap(Long distributionId) {

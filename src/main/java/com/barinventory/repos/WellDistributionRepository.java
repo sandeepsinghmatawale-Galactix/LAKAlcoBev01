@@ -59,5 +59,20 @@ public interface WellDistributionRepository
     	    @Param("wellId") Long wellId,
     	    @Param("sessionId") Long sessionId
     	);
-
+    
+ 
+ 
+    @Query("""
+    	    SELECT wd FROM WellDistribution wd
+    	    JOIN wd.distribution d
+    	    JOIN d.session s
+    	    WHERE wd.well.wellId = :wellId
+    	    AND s.sessionId = :sessionId
+    	    AND s.bar.barId = :barId
+    	""")
+    	List<WellDistribution> findByWellSessionAndBar(
+    	        @Param("wellId") Long wellId,
+    	        @Param("sessionId") Long sessionId,
+    	        @Param("barId") Long barId
+    	);
 }

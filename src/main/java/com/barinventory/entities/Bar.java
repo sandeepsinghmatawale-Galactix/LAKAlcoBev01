@@ -1,28 +1,26 @@
 package com.barinventory.entities;
 
+import java.util.List;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.Setter;
-
-@Entity
-@Table(name="wells")
 @Getter
 @Setter
-public class Well {
+@Entity
+public class Bar {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long wellId;
+    private Long barId;
 
-    private String wellName;
-    
-    @ManyToOne
-    @JoinColumn(name = "bar_id")
-    private Bar bar;
+    private String barName;
+
+    // Optional (only if needed)
+    @OneToMany(mappedBy = "bar")
+    private List<InventorySession> sessions;
 }

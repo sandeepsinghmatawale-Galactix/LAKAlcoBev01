@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import com.barinventory.config.SecurityUtils;
 import com.barinventory.dtos.DistributionRequest;
 import com.barinventory.dtos.DistributionRequestWrapper;
 import com.barinventory.entities.Brand;
@@ -27,44 +28,39 @@ public class DistributionController {
     private final WellService wellService;
     private final StockroomInventoryService stockroomService;
 
-    /*
-     * Create Page
-     */
+    // GET /distribution/create-page/{sessionId}
     @GetMapping("/create-page/{sessionId}")
     public String createDistributionPage(@PathVariable Long sessionId, Model model) {
         model.addAttribute("sessionId", sessionId);
         return "distribution/distribution-create";
     }
 
-    /*
-     * Create Distribution
-     */
+    // POST /distribution/create/{sessionId}
     @PostMapping("/create/{sessionId}")
     public String createDistribution(@PathVariable Long sessionId) {
-        Distribution distribution = distributionService.createDistribution(sessionId);
+        Long barId = SecurityUtils.getBarId();
+        Distribution distribution =
+                distributionService.createDistribution(barId, sessionId);
         return "redirect:/distribution/allocation/" + distribution.getDistributionId();
     }
 
-    /*
-     * Allocation Page (PRE-FILLED CORRECTLY ✅)
-     */
+    // GET /distribution/allocation/{distributionId}
     @GetMapping("/allocation/{distributionId}")
     public String allocationPage(@PathVariable Long distributionId, Model model) {
+        Long barId = SecurityUtils.getBarId();
 
-        List<Brand> brands = brandService.getAllBrands();
-        List<Well> wells = wellService.getAllWells();
-        Map<Long, Integer> stockMap = stockroomService.getSaleStockMap(distributionId);
+        List<Brand> brands = brandService.getBrandsByBar(barId);
+        List<Well> wells = wellService.getWellsByBar(barId);
+        Map<Long, Integer> stockMap =
+                stockroomService.getSaleStockMap(distributionId);
 
         List<DistributionRequest> requests = new ArrayList<>();
-
         for (Brand brand : brands) {
             for (Well well : wells) {
-
                 DistributionRequest req = new DistributionRequest();
-                req.setBrandId(brand.getBrandId());   // ✅ CRITICAL
-                req.setWellId(well.getWellId());      // ✅ CRITICAL
+                req.setBrandId(brand.getBrandId());
+                req.setWellId(well.getWellId());
                 req.setDistributedQty(0);
-
                 requests.add(req);
             }
         }
@@ -81,53 +77,28 @@ public class DistributionController {
         return "distribution/distribution-allocation";
     }
 
-    /*
-     * SUBMIT DISTRIBUTION (🔥 DEBUG ENABLED)
-     */
+    // POST /distribution/allocate/{distributionId}
     @PostMapping("/allocate/{distributionId}")
     public String distribute(
             @PathVariable Long distributionId,
             @ModelAttribute DistributionRequestWrapper wrapper,
             Model model
     ) {
-
-        // 🔍 DEBUG: Print incoming data
-        System.out.println("======== FORM DATA ========");
-        if (wrapper.getRequests() != null) {
-            wrapper.getRequests().forEach(r -> {
-                System.out.println(
-                        "Brand=" + r.getBrandId() +
-                        ", Well=" + r.getWellId() +
-                        ", Qty=" + r.getDistributedQty()
-                );
-            });
-        } else {
-            System.out.println("❌ Wrapper is NULL or EMPTY");
-        }
+        Long barId = SecurityUtils.getBarId();
 
         try {
-            System.out.println("➡️ Calling distributeStock...");
-
             distributionService.distributeStock(distributionId, wrapper.getRequests());
-
-            System.out.println("✅ Distribution SUCCESS");
 
             Long sessionId =
                     distributionService.getSessionIdByDistribution(distributionId);
 
-            System.out.println("➡️ Redirecting to /well/select/" + sessionId);
-
             return "redirect:/well/select/" + sessionId;
 
         } catch (RuntimeException ex) {
-
-            // 🔥 CRITICAL DEBUG LINE (YOU WERE MISSING THIS)
-            System.out.println("❌ ERROR: " + ex.getMessage());
             ex.printStackTrace();
 
-            // Reload page data
-            List<Brand> brands = brandService.getAllBrands();
-            List<Well> wells = wellService.getAllWells();
+            List<Brand> brands = brandService.getBrandsByBar(barId);
+            List<Well> wells = wellService.getWellsByBar(barId);
             Map<Long, Integer> stockMap =
                     stockroomService.getSaleStockMap(distributionId);
 
@@ -135,11 +106,7 @@ public class DistributionController {
             model.addAttribute("wells", wells);
             model.addAttribute("stockMap", stockMap);
             model.addAttribute("distributionId", distributionId);
-
-            // 🔴 SHOW ERROR IN UI
             model.addAttribute("error", ex.getMessage());
-
-            // 🔴 KEEP USER INPUT (VERY IMPORTANT)
             model.addAttribute("wrapper", wrapper);
 
             return "distribution/distribution-allocation";

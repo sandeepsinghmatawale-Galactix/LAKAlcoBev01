@@ -14,5 +14,14 @@ public interface WellRepository extends JpaRepository<Well, Long> {
 	List<Well> findAll();
 	
 	Optional<Well> findByWellName(String wellName);
+	
+ 
+	
+	//List<Well> findByBarBarId(Long barId);
+
+ 
+	
+	Optional<Well> findByWellIdAndBar_BarId(Long wellId, Long barId);
+	List<Well> findByBar_BarId(Long barId);
 
 }

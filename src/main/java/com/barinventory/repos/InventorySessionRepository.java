@@ -15,4 +15,21 @@ extends JpaRepository<InventorySession,Long> {
 	Optional<InventorySession> findTopByStatusOrderBySessionIdDesc(
             SessionStatus status
     );
+	
+	  Optional<InventorySession> findTopByBarBarIdAndStatusOrderBySessionIdDesc(
+	            Long barId,
+	            SessionStatus status
+	    );
+	  
+	  Optional<InventorySession> findByBarBarIdAndStatus(
+		        Long barId,
+		        SessionStatus status
+		);
+	  
+	  boolean existsByBarBarIdAndStatus(Long barId, SessionStatus status);
+	  
+ 
+	  
+	  Optional<InventorySession> findBySessionIdAndBarBarId(Long sessionId, Long barId);
+	
 }

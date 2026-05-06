@@ -13,22 +13,12 @@ import com.barinventory.entities.Distribution;
 public interface DistributionRepository 
         extends JpaRepository<Distribution, Long> {
 	
-	
-	Optional<Distribution> findBySessionSessionId(Long sessionId);
-	
-	Optional<Distribution> findTopByOrderByDistributionIdDesc();
-	
-	 Optional<Distribution> findByDistributionId(
-	            Long distributionId
-	    );
+	 
+
+    Optional<Distribution> findBySessionSessionId(Long sessionId);
+
+    Optional<Distribution> findTopByOrderByDistributionIdDesc();
 	 
 	 
 	 
-	 @Query("""
-			 SELECT COALESCE(SUM(wd.distributedQty), 0)
-			 FROM WellDistribution wd
-			 WHERE wd.distribution.distributionId = :distributionId
-			 AND wd.brand.brandId = :brandId
-			 """)
-			 Integer getTotalDistributedQty(Long distributionId, Long brandId);
 }
