@@ -35,6 +35,12 @@ public class WellDistribution {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_size_id", nullable = false)
     private BrandSize brandSize;
+    
+    @ManyToOne
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+
+   
 
     private Integer distributedQty;
 

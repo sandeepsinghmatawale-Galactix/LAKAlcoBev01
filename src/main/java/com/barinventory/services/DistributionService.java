@@ -9,6 +9,8 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import com.barinventory.dtos.DistributionRequest;
+import com.barinventory.entities.Brand;
+import com.barinventory.entities.BrandSize;
 import com.barinventory.entities.Distribution;
 import com.barinventory.entities.InventorySession;
 import com.barinventory.entities.StockroomInventory;
@@ -149,38 +151,52 @@ public class DistributionService {
 	 * ----------------------------------------- PREPARE BATCH
 	 * -----------------------------------------
 	 */
-	private List<WellDistribution> prepareBatch(List<DistributionRequest> requests, Distribution distribution) {
+	private List<WellDistribution> prepareBatch(
+	        List<DistributionRequest> requests,
+	        Distribution distribution
+	) {
 
-		List<WellDistribution> list = new ArrayList<>();
+	    List<WellDistribution> list = new ArrayList<>();
 
-		for (DistributionRequest r : requests) {
+	    for (DistributionRequest r : requests) {
 
-			if (r.getDistributedQty() == null || r.getDistributedQty() <= 0) {
+	        if (r.getDistributedQty() == null || r.getDistributedQty() <= 0) {
+	            continue;
+	        }
 
-				continue;
-			}
+	        if (r.getBrandSizeId() == null || r.getWellId() == null) {
+	            continue;
+	        }
 
-			if (r.getBrandSizeId() == null || r.getWellId() == null) {
+	        WellDistribution wd = new WellDistribution();
 
-				continue;
-			}
+	        wd.setDistribution(distribution);
 
-			WellDistribution wd = new WellDistribution();
+	        // load brandSize once
+	        BrandSize brandSize =
+	                brandSizeRepo.getReferenceById(r.getBrandSizeId());
 
-			wd.setDistribution(distribution);
+	        Brand brand = brandSize.getBrand();
 
-			wd.setBrandSize(brandSizeRepo.getReferenceById(r.getBrandSizeId()));
+	        if (brand == null) {
+	            throw new RuntimeException(
+	                "Brand missing for brandSizeId: " + r.getBrandSizeId()
+	            );
+	        }
 
-			wd.setWell(wellRepo.getReferenceById(r.getWellId()));
+	        wd.setBrandSize(brandSize);
+	        wd.setBrand(brand);
+	        wd.setWell(
+	                wellRepo.getReferenceById(r.getWellId())
+	        );
 
-			wd.setDistributedQty(r.getDistributedQty());
+	        wd.setDistributedQty(r.getDistributedQty());
+	        wd.setDistributedAt(LocalDateTime.now());
 
-			wd.setDistributedAt(LocalDateTime.now());
+	        list.add(wd);
+	    }
 
-			list.add(wd);
-		}
-
-		return list;
+	    return list;
 	}
 
 	/*

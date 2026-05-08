@@ -101,6 +101,7 @@ public class DistributionController {
             for (BrandSize brandSize : brand.getBrandSizes()) {
                 for (Well well : wells) {
                     DistributionRequest req = new DistributionRequest();
+                    req.setBrandId(brand.getBrandId());
                     req.setBrandSizeId(brandSize.getBrandSizeId());
                     req.setWellId(well.getWellId());
                     req.setDistributedQty(0);
