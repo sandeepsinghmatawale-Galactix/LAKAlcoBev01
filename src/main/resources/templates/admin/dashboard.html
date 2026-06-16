@@ -2,147 +2,799 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Control Panel & Dashboard</title>
+    <title>Admin Control Panel</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f6f9; color: #333; }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .stats-container { display: flex; gap: 20px; margin-top: 20px; margin-bottom: 40px; }
-        .card { flex: 1; background: white; border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card h3 { margin: 0 0 10px 0; color: #666; font-size: 14px; text-transform: uppercase; }
-        .card p { margin: 0; font-size: 28px; font-weight: bold; color: #1a73e8; }
-        
-        /* Interactive Controls Styling */
-        .btn-action-trigger { background-color: #34a853; color: white; border: none; padding: 12px 24px; font-size: 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 25px; transition: background 0.2s; }
-        .btn-action-trigger:hover { background-color: #2d8e47; }
-        
-        /* Form Collapsible Section container */
-        .form-section { display: none; background: white; padding: 30px; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 600px; margin-bottom: 40px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn-submit { background-color: #1a73e8; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
-        .btn-submit:hover { background-color: #1557b0; }
-        .alert-success { background-color: #d4edda; color: #155724; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #c3e6cb; }
-    </style>
-    <script>
-        // Toggles visibility of the entire creation flow panel
-        function toggleOnboardingPanel() {
-            const panel = document.getElementById("onboardingFormPanel");
-            if (panel.style.display === "none" || panel.style.display === "") {
-                panel.style.display = "block";
-                panel.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                panel.style.display = "none";
-            }
-        }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f9; color: #333; }
+        header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 16px 30px; border-bottom: 2px solid #ddd; }
+        header h1 { margin: 0; font-size: 20px; }
+        header p { margin: 2px 0 0; font-size: 12px; color: #999; }
+        main { padding: 30px; }
 
-        // Toggles calendar execution windows dynamically if CUSTOM is chosen
-        function toggleCustomCalendarWindows() {
-            const selectedType = document.getElementById("trialTypeField").value;
-            const calendarWrapper = document.getElementById("customCalendarWrapper");
-            if (selectedType === "CUSTOM") {
-                calendarWrapper.style.display = "block";
-                document.getElementById("startDateInput").required = true;
-                document.getElementById("endDateInput").required = true;
-            } else {
-                calendarWrapper.style.display = "none";
-                document.getElementById("startDateInput").required = false;
-                document.getElementById("endDateInput").required = false;
-            }
-        }
-    </script>
+        .stats { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card { flex: 1; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; color: #888; }
+        .stat-card p { margin: 0; font-size: 32px; font-weight: bold; color: #1a73e8; }
+
+        .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid #ddd; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: bold; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .btn-primary { background: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-success { background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-success:hover { background: #2d8e47; }
+        .btn-warning { background: #fbbc04; color: #333; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-danger { background: #ea4335; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+
+        .form-panel { background: white; padding: 30px; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 700px; margin-bottom: 30px; display: none; }
+        .form-panel.open { display: block; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { font-size: 13px; font-weight: bold; color: #555; }
+        .form-group input, .form-group select { padding: 9px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #1a73e8; }
+        .section-title { font-size: 13px; font-weight: bold; color: #1a73e8; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e8f0fe; grid-column: 1 / -1; }
+        .btn-submit { background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px; width: 100%; margin-top: 20px; }
+        .btn-submit:hover { background: #1557b0; }
+
+        .table-wrap { background: white; border-radius: 8px; border: 1px solid #e0e0e0; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead { background: #f8f9fa; }
+        th { padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; border-bottom: 1px solid #e0e0e0; }
+        td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+        .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .badge-active { background: #e6f4ea; color: #2d8e47; }
+        .badge-inactive { background: #fce8e6; color: #c5221f; }
+        .badge-subscribed { background: #e8f0fe; color: #1a73e8; }
+
+        .alert-success { background: #e6f4ea; color: #2d8e47; padding: 14px 20px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #ceead6; font-weight: bold; }
+        .alert-error { background: #fce8e6; color: #c5221f; padding: 14px 20px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #f5c6c2; font-weight: bold; display:none; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 8px; padding: 30px; width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal h3 { margin: 0 0 20px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+        /* Opening Stock specific */
+        .os-step { background: white; border-radius: 8px; border: 1px solid #e0e0e0; padding: 24px; margin-bottom: 20px; }
+        .os-step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .os-step-header h3 { margin: 0; font-size: 15px; }
+        .step-badge { background: #e8f0fe; color: #1a73e8; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .sku-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .sku-row-well { display: grid; grid-template-columns: 2fr 1fr 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .sku-row input, .sku-row select, .sku-row-well input, .sku-row-well select { padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 100%; }
+        .sku-row input:focus, .sku-row select:focus, .sku-row-well input:focus { outline: none; border-color: #1a73e8; }
+        .sku-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px; gap: 8px; margin-bottom: 6px; }
+        .sku-header-well { display: grid; grid-template-columns: 2fr 1fr 40px; gap: 8px; margin-bottom: 6px; }
+        .sku-header span { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; }
+        .remove-btn { background: #fce8e6; color: #ea4335; border: none; border-radius: 4px; cursor: pointer; padding: 6px 10px; font-size: 14px; font-weight: bold; }
+        .add-row-btn { background: #f1f8e9; color: #34a853; border: 1px dashed #34a853; border-radius: 4px; padding: 7px 14px; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 8px; }
+        .add-row-btn:hover { background: #e6f4ea; }
+        .well-block { border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; margin-bottom: 12px; background: #fafafa; }
+        .well-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .well-block-header h4 { margin: 0; font-size: 14px; color: #444; }
+        .catalog-select { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        .catalog-select:focus { outline: none; border-color: #1a73e8; }
+        .os-summary { background: #e8f0fe; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: none; }
+        .os-summary h4 { margin: 0 0 8px; color: #1a73e8; }
+        .os-summary p { margin: 4px 0; font-size: 13px; }
+        .loader { display: none; text-align: center; padding: 20px; color: #888; font-size: 13px; }
+    </style>
 </head>
 <body>
 
-    <header>
-        <div>
-            <h1>Global Management Console</h1>
-            <p>Monolith Control Engine v1.0</p>
+<header>
+    <div>
+        <h1>⚙️ Global Management Console</h1>
+        <p>BarInventory Admin · v1.0</p>
+    </div>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" style="background:#ea4335;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:bold;">Logout</button>
+    </form>
+</header>
+
+<main>
+    <div class="alert-success" th:if="${param.success}">
+        ✅ Bar onboarded successfully.
+    </div>
+    <div class="alert-success" th:if="${param.stockSuccess}">
+        ✅ Opening stock seeded successfully. Bar is ready for operations.
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total Bars</h3>
+            <p th:text="${stats != null ? stats.totalBars : 0}">0</p>
         </div>
-        <nav>
-            <form th:action="@{/logout}" method="post">
-                <button type="submit" style="background: #ea4335; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">Secure Logout</button>
+        <div class="stat-card">
+            <h3>Active Subscriptions</h3>
+            <p th:text="${stats != null ? stats.activeSubscriptions : 0}">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Brands</h3>
+            <p th:text="${stats != null ? stats.totalBrands : 0}">0</p>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event,'bars')">🏪 Bars</button>
+        <button class="tab-btn" onclick="switchTab(event,'stock')">📦 Opening Stock</button>
+        <button class="tab-btn" onclick="switchTab(event,'brands')">🍾 Brands</button>
+    </div>
+
+    <!-- ===================== BARS TAB ===================== -->
+    <div id="tab-bars" class="tab-pane active">
+        <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <button class="btn-success" onclick="togglePanel('onboardPanel')">➕ Onboard New Bar</button>
+        </div>
+
+        <div id="onboardPanel" class="form-panel">
+            <h2 style="margin:0 0 20px;">Onboard New Bar</h2>
+            <form th:action="@{/admin/onboard}" th:object="${onboardRequest}" method="post" autocomplete="off">
+                <input type="text" style="display:none;" aria-hidden="true"/>
+                <input type="password" style="display:none;" aria-hidden="true"/>
+                <div class="form-grid">
+                    <div class="section-title">🏪 Store Details</div>
+                    <div class="form-group">
+                        <label>Bar / Store Name *</label>
+                        <input type="text" th:field="*{storeName}" placeholder="Downtown Lounge" required/>
+                    </div>
+                    <div class="form-group">
+                        <label>Owner Name</label>
+                        <input type="text" th:field="*{ownerName}" placeholder="Rajesh Kumar"/>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" th:field="*{phone}" placeholder="9876543210"/>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" th:field="*{email}" placeholder="owner@bar.com"/>
+                    </div>
+                    <div class="form-group">
+                        <label>License Number</label>
+                        <input type="text" th:field="*{licenseNumber}" placeholder="LIC-2024-001"/>
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" th:field="*{city}" placeholder="Hyderabad"/>
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" th:field="*{state}" placeholder="Telangana"/>
+                    </div>
+                    <div class="form-group">
+                        <label>Pincode</label>
+                        <input type="text" th:field="*{pincode}" placeholder="500001"/>
+                    </div>
+                    <div class="form-group full">
+                        <label>Address</label>
+                        <input type="text" th:field="*{address}" placeholder="Plot 12, MG Road"/>
+                    </div>
+                    <div class="section-title">🔐 Login Credentials</div>
+                    <div class="form-group">
+                        <label>Username *</label>
+                        <input type="text" th:field="*{adminUsername}" autocomplete="new-password" required/>
+                    </div>
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" th:field="*{adminPassword}" autocomplete="new-password" required/>
+                    </div>
+                    <div class="section-title">📅 Subscription</div>
+                    <div class="form-group full">
+                        <label>Trial Type</label>
+                        <select id="trialTypeField" th:field="*{trialType}" onchange="toggleCustomDates()">
+                            <option value="WEEKLY">Weekly (7 Days)</option>
+                            <option value="MONTHLY">Monthly (30 Days)</option>
+                            <option value="THREE_MONTH">Quarterly (90 Days)</option>
+                            <option value="YEARLY">Yearly (365 Days)</option>
+                            <option value="CUSTOM">Custom Dates</option>
+                        </select>
+                    </div>
+                    <div id="customDates" style="display:none;grid-column:1/-1;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Start Date</label>
+                                <input type="datetime-local" id="startDateInput" th:field="*{customStartDate}"/>
+                            </div>
+                            <div class="form-group">
+                                <label>End Date</label>
+                                <input type="datetime-local" id="endDateInput" th:field="*{customEndDate}"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-title">🍺 Wells Setup</div>
+                    <div class="form-group full">
+                        <label>Well Names (comma separated)</label>
+                        <input type="text" name="wellNamesRaw" id="wellNamesRaw" placeholder="Well 1, Well 2, Bar Counter"/>
+                        <input type="hidden" th:field="*{wellNamesRaw}" id="wellNamesHidden"/>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">🚀 Deploy Bar</button>
             </form>
-        </nav>
-    </header>
-
-    <main>
-        <div class="alert-success" th:if="${param.success}">
-            <strong>Success!</strong> New Bar profile initialized and secure infrastructure provisioned instantly.
         </div>
 
-        <h2>System Performance Tracking</h2>
-        <div class="stats-container">
-            <div class="card">
-                <h3>Total Provisioned Bars</h3>
-                <p th:text="${stats != null ? stats.totalBars : 0}">0</p>
+        <!-- Bars Table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Bar Name</th><th>Owner</th><th>City</th>
+                        <th>License</th><th>Status</th><th>Subscription</th><th>Expires</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="bar : ${bars}">
+                        <td th:text="${bar.barId}"></td>
+                        <td th:text="${bar.barName}"></td>
+                        <td th:text="${bar.ownerName}"></td>
+                        <td th:text="${bar.city}"></td>
+                        <td th:text="${bar.licenseNumber}"></td>
+                        <td>
+                            <span class="badge" th:classappend="${bar.status == 'ACTIVE'} ? 'badge-active' : 'badge-inactive'"
+                                  th:text="${bar.status}"></span>
+                        </td>
+                        <td>
+                            <span class="badge badge-subscribed" th:text="${bar.subscriptionStatus}"></span>
+                        </td>
+                        <td th:text="${bar.subscriptionEnd != null ? #temporals.format(bar.subscriptionEnd,'dd MMM yyyy') : '-'}"></td>
+                        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <button class="btn-warning" th:onclick="|openEditBar(${bar.barId})|">Edit</button>
+                            <button class="btn-primary" style="font-size:12px;padding:6px 12px;" th:onclick="|openEditSub(${bar.barId})|">Subscription</button>
+                            <button class="btn-success" style="font-size:12px;padding:6px 12px;" th:onclick="|goToOpeningStock(${bar.barId}, '${bar.barName}')|">📦 Stock</button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(bars)}">
+                        <td colspan="9" style="text-align:center;color:#aaa;padding:30px;">No bars onboarded yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===================== OPENING STOCK TAB ===================== -->
+    <div id="tab-stock" class="tab-pane">
+
+        <!-- Step 1: Select Bar -->
+        <div class="os-step">
+            <div class="os-step-header">
+                <h3>Step 1 — Select Bar</h3>
+                <span class="step-badge">Required</span>
             </div>
-            <div class="card">
-                <h3>Total Tracked Brands</h3>
-                <p th:text="${stats != null ? stats.totalBrands : 0}">0</p>
+            <div style="display:flex;gap:12px;align-items:flex-end;">
+                <div style="flex:1;">
+                    <label style="font-size:13px;font-weight:bold;color:#555;display:block;margin-bottom:5px;">Bar</label>
+                    <select id="os_barSelect" class="catalog-select" onchange="onBarSelected()">
+                        <option value="">-- Select a Bar --</option>
+                        <th:block th:each="bar : ${bars}">
+                            <option th:value="${bar.barId}" th:text="${bar.barName + ' (ID: ' + bar.barId + ')'}"></option>
+                        </th:block>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="loadBarData()">Load Bar →</button>
             </div>
-            <div class="card">
-                <h3>Active Premium Subscriptions</h3>
-                <p th:text="${stats != null ? stats.activeSubscriptions : 0}">0</p>
-            </div>
+            <div class="loader" id="barLoader">⏳ Loading catalog and wells...</div>
+            <div id="os_barName" style="margin-top:10px;font-size:13px;color:#34a853;font-weight:bold;display:none;"></div>
         </div>
 
-        <button type="button" class="btn-action-trigger" onclick="toggleOnboardingPanel()">
-            ➕ Onboard New Bar & Subscription
-        </button>
-
-        <div id="onboardingFormPanel" class="form-section">
-            <h2>Provision New Bar Architecture</h2>
-            <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
-                Creates a persistent Bar record, maps a secure Master Business Owner identity profile, and deploys timed subscription parameters within a atomic database scope.
+        <!-- Step 2: Stockroom Opening Stock -->
+        <div class="os-step" id="os_stockroomSection" style="display:none;">
+            <div class="os-step-header">
+                <h3>Step 2 — Stockroom Opening Stock</h3>
+                <span class="step-badge">Stockroom</span>
+            </div>
+            <p style="font-size:13px;color:#888;margin:0 0 16px;">
+                Enter opening quantities for all SKUs in the stockroom. These become available to the bar immediately.
             </p>
-            
-			<form th:action="@{/admin/onboard}" th:object="${onboardRequest}" method="post" autocomplete="off">
-			    
-			    <input type="text" style="display:none;" aria-hidden="true" />
-			    <input type="password" style="display:none;" aria-hidden="true" />
 
-			    <div class="form-group">
-			        <label>Enterprise Bar/Store Name:</label>
-			        <input type="text" th:field="*{storeName}" placeholder="e.g., Downtown Lounge" autocomplete="off" required />
-			    </div>
-
-			    <div class="form-group">
-			        <label>New Store Master Username/Email:</label>
-			        <input type="text" th:field="*{adminUsername}" placeholder="e.g., manager_downtown" autocomplete="new-password" required />
-			    </div>
-
-			    <div class="form-group">
-			        <label>Secure Master Password:</label>
-			        <input type="password" th:field="*{adminPassword}" placeholder="••••••••" autocomplete="new-password" required />
-			    </div>
-
-			    <div class="form-group">
-			        <label>Subscription & Trial Policies:</label>
-			        <select id="trialTypeField" th:field="*{trialType}" onchange="toggleCustomCalendarWindows()">
-			            <option value="WEEKLY">Weekly Free Trial (7 Days)</option>
-			            <option value="MONTHLY">Standard Monthly Window (30 Days)</option>
-			            <option value="THREE_MONTH">Quarterly Access Pass (90 Days)</option>
-			            <option value="YEARLY">Enterprise Annual Tier (365 Days)</option>
-			            <option value="CUSTOM">Custom Tailored Allocation (Pick Dates)</option>
-			        </select>
-			    </div>
-
-			    <div id="customCalendarWrapper" style="display: none; border-left: 4px solid #1a73e8; padding-left: 15px; margin: 20px 0;">
-			        <div class="form-group">
-			            <label>Target Activation Window Start:</label>
-			            <input type="datetime-local" id="startDateInput" th:field="*{customStartDate}" />
-			        </div>
-			        <div class="form-group">
-			            <label>Target Activation Window Expiration:</label>
-			            <input type="datetime-local" id="endDateInput" th:field="*{customEndDate}" />
-			        </div>
-			    </div>
-
-			    <button type="submit" class="btn-submit">Deploy Infrastructure Package</button>
-			</form>
+            <div class="sku-header">
+                <span>SKU (Brand · Size · Pack)</span>
+                <span>Opening Qty</span>
+                <span>Purchase Price/Unit (₹)</span>
+                <span>Selling Price (₹)</span>
+                <span>Invoice Ref</span>
+                <span></span>
+            </div>
+            <div id="stockroomRows"></div>
+            <button class="add-row-btn" onclick="addStockroomRow()">+ Add SKU</button>
         </div>
-    </main>
 
+        <!-- Step 3: Well Opening Stock -->
+        <div class="os-step" id="os_wellsSection" style="display:none;">
+            <div class="os-step-header">
+                <h3>Step 3 — Well Opening Stock</h3>
+                <span class="step-badge">Wells</span>
+            </div>
+            <p style="font-size:13px;color:#888;margin:0 0 16px;">
+                Enter opening quantities per well. Only SKUs added in Step 2 are available here.
+            </p>
+            <div id="wellBlocks"></div>
+        </div>
+
+        <!-- Summary + Submit -->
+        <div id="os_submitSection" style="display:none;">
+            <div class="os-summary" id="os_summary"></div>
+            <div id="os_errorMsg" class="alert-error"></div>
+            <button class="btn-submit" style="max-width:400px;" onclick="submitOpeningStock()">
+                ✅ Save Opening Stock
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================== BRANDS TAB ===================== -->
+    <div id="tab-brands" class="tab-pane">
+        <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <button class="btn-success" onclick="window.location='/admin/catalog/brands/new'">➕ Add Brand</button>
+            <button class="btn-primary" onclick="window.location='/admin/catalog/tree'">📋 View Catalog</button>
+        </div>
+        <div style="background:white;padding:40px;border-radius:8px;text-align:center;color:#aaa;border:1px solid #e0e0e0;">
+            Brand catalog management → navigate to /admin/catalog/tree
+        </div>
+    </div>
+</main>
+
+<!-- Edit Bar Modal -->
+<div id="editBarModal" class="modal-overlay">
+    <div class="modal">
+        <h3>✏️ Edit Bar</h3>
+        <div class="form-grid">
+            <div class="form-group"><label>Bar Name</label><input id="eb_barName" type="text"/></div>
+            <div class="form-group"><label>Owner Name</label><input id="eb_ownerName" type="text"/></div>
+            <div class="form-group"><label>Phone</label><input id="eb_phone" type="text"/></div>
+            <div class="form-group"><label>Email</label><input id="eb_email" type="email"/></div>
+            <div class="form-group"><label>License No.</label><input id="eb_license" type="text"/></div>
+            <div class="form-group"><label>City</label><input id="eb_city" type="text"/></div>
+            <div class="form-group"><label>State</label><input id="eb_state" type="text"/></div>
+            <div class="form-group"><label>Pincode</label><input id="eb_pincode" type="text"/></div>
+            <div class="form-group full"><label>Address</label><input id="eb_address" type="text"/></div>
+            <div class="form-group full">
+                <label>Status</label>
+                <select id="eb_status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="SUSPENDED">Suspended</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-warning" onclick="closeModal('editBarModal')">Cancel</button>
+            <button class="btn-primary" onclick="submitEditBar()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subscription Modal -->
+<div id="editSubModal" class="modal-overlay">
+    <div class="modal">
+        <h3>📅 Edit Subscription</h3>
+        <div class="form-grid">
+            <div class="form-group full">
+                <label>Status</label>
+                <select id="sub_status">
+                    <option value="SUBSCRIBED">Subscribed</option>
+                    <option value="UNSUBSCRIBED">Unsubscribed</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="BLOCKED">Blocked</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label>Trial Type</label>
+                <select id="sub_trialType">
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="MONTHLY">Monthly</option>
+                    <option value="THREE_MONTH">Quarterly</option>
+                    <option value="YEARLY">Yearly</option>
+                    <option value="CUSTOM">Custom</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Start Date</label><input id="sub_startDate" type="datetime-local"/></div>
+            <div class="form-group"><label>End Date</label><input id="sub_endDate" type="datetime-local"/></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-warning" onclick="closeModal('editSubModal')">Cancel</button>
+            <button class="btn-primary" onclick="submitEditSub()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeBarId = null;
+    let catalogItems = [];   // from GET /inventory/catalog
+    let barWells = [];        // from GET /admin/opening-stock/bars/{id}/wells
+    let selectedBarId = null;
+
+    // ── Tab switching ──────────────────────────────────────────
+    function switchTab(event, name) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function togglePanel(id) {
+        const p = document.getElementById(id);
+        p.classList.toggle('open');
+        if (p.classList.contains('open')) p.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleCustomDates() {
+        const v = document.getElementById('trialTypeField').value;
+        document.getElementById('customDates').style.display = v === 'CUSTOM' ? 'block' : 'none';
+    }
+
+    // ── Opening Stock: navigate from Bars tab ─────────────────
+    function goToOpeningStock(barId, barName) {
+        // Switch to stock tab
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-stock').classList.add('active');
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+
+        // Pre-select bar
+        document.getElementById('os_barSelect').value = barId;
+        loadBarData();
+    }
+
+    function onBarSelected() {
+        // Reset downstream sections when bar changes
+        document.getElementById('os_stockroomSection').style.display = 'none';
+        document.getElementById('os_wellsSection').style.display = 'none';
+        document.getElementById('os_submitSection').style.display = 'none';
+        document.getElementById('os_barName').style.display = 'none';
+        document.getElementById('stockroomRows').innerHTML = '';
+        document.getElementById('wellBlocks').innerHTML = '';
+        catalogItems = [];
+        barWells = [];
+    }
+
+    async function loadBarData() {
+        const barId = document.getElementById('os_barSelect').value;
+        if (!barId) { alert('Please select a bar first.'); return; }
+
+        selectedBarId = barId;
+        document.getElementById('barLoader').style.display = 'block';
+        document.getElementById('os_stockroomSection').style.display = 'none';
+        document.getElementById('os_wellsSection').style.display = 'none';
+        document.getElementById('os_submitSection').style.display = 'none';
+
+        try {
+            // Load catalog + wells in parallel
+            const [catalogRes, wellsRes] = await Promise.all([
+                fetch('/inventory/catalog'),
+                fetch(`/admin/opening-stock/bars/${barId}/wells`)
+            ]);
+
+            if (!catalogRes.ok) throw new Error('Failed to load catalog');
+            if (!wellsRes.ok) throw new Error('Failed to load wells for this bar');
+
+            catalogItems = await catalogRes.json();
+            const wellsData = await wellsRes.json();
+            barWells = wellsData.wells || [];
+
+            document.getElementById('barLoader').style.display = 'none';
+            const nameEl = document.getElementById('os_barName');
+            nameEl.textContent = `✅ Loaded: ${wellsData.barName} — ${barWells.length} well(s) found, ${catalogItems.length} SKUs in catalog`;
+            nameEl.style.display = 'block';
+
+            // Render sections
+            renderStockroomSection();
+            renderWellsSection();
+
+            document.getElementById('os_stockroomSection').style.display = 'block';
+            document.getElementById('os_wellsSection').style.display = barWells.length > 0 ? 'block' : 'none';
+            document.getElementById('os_submitSection').style.display = 'block';
+
+        } catch (e) {
+            document.getElementById('barLoader').style.display = 'none';
+            showError(e.message);
+        }
+    }
+
+    // ── Stockroom rows ────────────────────────────────────────
+    function catalogOptionsHtml(selectedPackId = '') {
+        return catalogItems.map(c =>
+            `<option value="${c.packId}" 
+                data-brand="${c.brandName}" 
+                data-size="${c.sizeMl}" 
+                data-pack="${c.packagingType}"
+                data-sizeid="${c.brandSizeId}"
+                data-brandid="${c.brandId}"
+                data-mrp="${c.mrp ?? ''}"
+                ${String(c.packId) === String(selectedPackId) ? 'selected' : ''}>
+                ${c.brandName} · ${c.sizeMl}ml · ${c.packagingType}
+            </option>`
+        ).join('');
+    }
+
+    function renderStockroomSection() {
+        document.getElementById('stockroomRows').innerHTML = '';
+        addStockroomRow(); // start with one empty row
+    }
+
+    function addStockroomRow() {
+        const container = document.getElementById('stockroomRows');
+        const idx = container.children.length;
+        const div = document.createElement('div');
+        div.className = 'sku-row';
+        div.id = `sr_row_${idx}`;
+        div.innerHTML = `
+            <select class="catalog-select" id="sr_sku_${idx}" onchange="onStockroomSkuChange(${idx})">
+                <option value="">-- Select SKU --</option>
+                ${catalogOptionsHtml()}
+            </select>
+            <input type="number" id="sr_qty_${idx}" placeholder="Qty" min="0" value="0"/>
+            <input type="number" id="sr_cost_${idx}" placeholder="₹ Cost" min="0" step="0.01"/>
+            <input type="number" id="sr_sell_${idx}" placeholder="₹ Sell (opt)" min="0" step="0.01"/>
+            <input type="text"   id="sr_ref_${idx}"  placeholder="Inv Ref (opt)"/>
+            <button class="remove-btn" onclick="removeRow('sr_row_${idx}')">✕</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function onStockroomSkuChange(idx) {
+        const sel = document.getElementById(`sr_sku_${idx}`);
+        const opt = sel.options[sel.selectedIndex];
+        const mrp = opt.getAttribute('data-mrp');
+        if (mrp) {
+            document.getElementById(`sr_sell_${idx}`).placeholder = `₹ ${mrp} (MRP)`;
+        }
+        // Refresh well dropdowns since stockroom SKUs define what's available in wells
+        refreshWellSkuOptions();
+    }
+
+    function removeRow(id) {
+        const el = document.getElementById(id);
+        if (el) { el.remove(); refreshWellSkuOptions(); }
+    }
+
+    // ── Well blocks ───────────────────────────────────────────
+    function renderWellsSection() {
+        const container = document.getElementById('wellBlocks');
+        container.innerHTML = '';
+        barWells.forEach(well => {
+            const block = document.createElement('div');
+            block.className = 'well-block';
+            block.id = `well_block_${well.wellId}`;
+            block.innerHTML = `
+                <div class="well-block-header">
+                    <h4>🍺 ${well.wellName}</h4>
+                    <button class="add-row-btn" onclick="addWellRow(${well.wellId})">+ Add SKU</button>
+                </div>
+                <div class="sku-header-well">
+                    <span>SKU (from Stockroom)</span><span>Opening Qty</span><span></span>
+                </div>
+                <div id="well_rows_${well.wellId}"></div>
+            `;
+            container.appendChild(block);
+            addWellRow(well.wellId); // start with one empty row per well
+        });
+    }
+
+    function getSelectedStockroomSkus() {
+        // Returns array of selected packIds from stockroom rows
+        const rows = document.getElementById('stockroomRows').children;
+        const skus = [];
+        for (const row of rows) {
+            const sel = row.querySelector('select');
+            if (sel && sel.value) skus.push(sel);
+        }
+        return skus;
+    }
+
+    function stockroomSkuOptionsHtml(selectedPackId = '') {
+        // Only show SKUs that have been selected in stockroom step
+        const selects = getSelectedStockroomSkus();
+        if (selects.length === 0) {
+            return '<option value="">-- Add SKUs to Stockroom first --</option>';
+        }
+        let opts = '<option value="">-- Select SKU --</option>';
+        selects.forEach(sel => {
+            const opt = sel.options[sel.selectedIndex];
+            if (!opt.value) return;
+            opts += `<option value="${opt.value}"
+                data-sizeid="${opt.getAttribute('data-sizeid')}"
+                ${String(opt.value) === String(selectedPackId) ? 'selected' : ''}>
+                ${opt.text}
+            </option>`;
+        });
+        return opts;
+    }
+
+    function addWellRow(wellId) {
+        const container = document.getElementById(`well_rows_${wellId}`);
+        const idx = container.children.length;
+        const div = document.createElement('div');
+        div.className = 'sku-row-well';
+        div.id = `wr_${wellId}_${idx}`;
+        div.innerHTML = `
+            <select class="catalog-select" id="wr_sku_${wellId}_${idx}">
+                <option value="">-- Select SKU --</option>
+                ${stockroomSkuOptionsHtml()}
+            </select>
+            <input type="number" id="wr_qty_${wellId}_${idx}" placeholder="Opening Qty" min="0" value="0"/>
+            <button class="remove-btn" onclick="removeRow('wr_${wellId}_${idx}')">✕</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function refreshWellSkuOptions() {
+        // Re-render all well SKU dropdowns when stockroom changes
+        barWells.forEach(well => {
+            const container = document.getElementById(`well_rows_${well.wellId}`);
+            if (!container) return;
+            for (const row of container.children) {
+                const sel = row.querySelector('select');
+                if (!sel) continue;
+                const currentVal = sel.value;
+                sel.innerHTML = stockroomSkuOptionsHtml(currentVal);
+            }
+        });
+    }
+
+    // ── Submit ────────────────────────────────────────────────
+    function buildPayload() {
+        const stockroomLines = [];
+        const wellLines = [];
+
+        // Stockroom
+        const srRows = document.getElementById('stockroomRows').children;
+        for (const row of srRows) {
+            const sel = row.querySelector('select');
+            if (!sel || !sel.value) continue;
+            const opt = sel.options[sel.selectedIndex];
+            const idx = sel.id.replace('sr_sku_', '');
+            const qty = parseInt(document.getElementById(`sr_qty_${idx}`).value) || 0;
+            const cost = parseFloat(document.getElementById(`sr_cost_${idx}`).value) || 0;
+            const sell = parseFloat(document.getElementById(`sr_sell_${idx}`).value) || null;
+            const ref  = document.getElementById(`sr_ref_${idx}`).value || null;
+            if (qty <= 0) continue;
+            stockroomLines.push({
+                depotPackId: parseInt(sel.value),
+                depotBrandSizeId: parseInt(opt.getAttribute('data-sizeid')),
+                openingQty: qty,
+                purchasePricePerUnit: cost,
+                sellingPrice: sell,
+                invoiceRefNo: ref,
+                brandName: opt.getAttribute('data-brand'),
+                sizeMl: parseInt(opt.getAttribute('data-size')),
+                packagingType: opt.getAttribute('data-pack'),
+                mrp: parseFloat(opt.getAttribute('data-mrp')) || null
+            });
+        }
+
+        // Wells
+        barWells.forEach(well => {
+            const container = document.getElementById(`well_rows_${well.wellId}`);
+            if (!container) return;
+            for (const row of container.children) {
+                const sel = row.querySelector('select');
+                if (!sel || !sel.value) continue;
+                const opt = sel.options[sel.selectedIndex];
+                const qtyInput = row.querySelector('input[type="number"]');
+                const qty = parseInt(qtyInput?.value) || 0;
+                if (qty <= 0) continue;
+                wellLines.push({
+                    wellId: well.wellId,
+                    depotPackId: parseInt(sel.value),
+                    depotBrandSizeId: parseInt(opt.getAttribute('data-sizeid')),
+                    openingQty: qty
+                });
+            }
+        });
+
+        return { barId: parseInt(selectedBarId), stockroomLines, wellLines };
+    }
+
+    async function submitOpeningStock() {
+        const payload = buildPayload();
+
+        if (!payload.stockroomLines.length) {
+            showError('Please add at least one SKU to the stockroom with qty > 0.');
+            return;
+        }
+
+        hideError();
+        const btn = document.querySelector('#os_submitSection .btn-submit');
+        btn.textContent = '⏳ Saving...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/admin/opening-stock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to save opening stock');
+            }
+
+            const result = await res.json();
+            showSummary(result);
+            btn.textContent = '✅ Saved Successfully';
+
+        } catch (e) {
+            showError(e.message);
+            btn.textContent = '✅ Save Opening Stock';
+            btn.disabled = false;
+        }
+    }
+
+    function showSummary(result) {
+        const el = document.getElementById('os_summary');
+        let wellHtml = (result.wellSummaries || [])
+            .map(w => `<span style="margin-right:12px;">🍺 ${w.wellName}: ${w.itemsSeeded} SKU(s)</span>`)
+            .join('');
+        el.innerHTML = `
+            <h4>✅ Opening Stock Saved — ${result.barName}</h4>
+            <p>📦 Stockroom: <strong>${result.stockroomLinesCreated}</strong> SKU(s) seeded</p>
+            <p>🍺 Wells: <strong>${result.wellLinesCreated}</strong> line(s) across ${(result.wellSummaries || []).length} well(s)</p>
+            ${wellHtml ? `<p style="margin-top:8px;">${wellHtml}</p>` : ''}
+            <p style="margin-top:8px;color:#888;font-size:12px;">Bar owner can now log in and start their first session with pre-populated stock.</p>
+        `;
+        el.style.display = 'block';
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('os_errorMsg');
+        el.textContent = '❌ ' + msg;
+        el.style.display = 'block';
+    }
+
+    function hideError() {
+        document.getElementById('os_errorMsg').style.display = 'none';
+    }
+
+    // ── Bar/Sub modals ────────────────────────────────────────
+    function openEditBar(barId) { activeBarId = barId; document.getElementById('editBarModal').classList.add('open'); }
+    function openEditSub(barId) { activeBarId = barId; document.getElementById('editSubModal').classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); activeBarId = null; }
+
+    function submitEditBar() {
+        const payload = {
+            barName: document.getElementById('eb_barName').value,
+            ownerName: document.getElementById('eb_ownerName').value,
+            phone: document.getElementById('eb_phone').value,
+            email: document.getElementById('eb_email').value,
+            licenseNumber: document.getElementById('eb_license').value,
+            city: document.getElementById('eb_city').value,
+            state: document.getElementById('eb_state').value,
+            pincode: document.getElementById('eb_pincode').value,
+            address: document.getElementById('eb_address').value,
+            status: document.getElementById('eb_status').value
+        };
+        fetch(`/admin/bars/${activeBarId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(r => { if (r.ok) { closeModal('editBarModal'); location.reload(); } });
+    }
+
+    function submitEditSub() {
+        const payload = {
+            status: document.getElementById('sub_status').value,
+            trialType: document.getElementById('sub_trialType').value,
+            startDate: document.getElementById('sub_startDate').value || null,
+            endDate: document.getElementById('sub_endDate').value || null
+        };
+        fetch(`/admin/bars/${activeBarId}/subscription`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(r => { if (r.ok) { closeModal('editSubModal'); location.reload(); } });
+    }
+</script>
 </body>
 </html>

@@ -6,8 +6,10 @@ import lombok.Data;
 public class DistributionRequest {
 
     private Long wellId;
-    private Long brandId;   
     
+    private Long depotBrandId; 
     private Integer distributedQty;
-    private Long brandSizeId;
+ 
+    
+    private Long depotBrandSizeId;
 }

@@ -43,6 +43,9 @@ public class WellInventoryService {
      * -----------------------------------------
      */
     public void initializeWellInventory(Long barId, Long sessionId, Long wellId) {
+    	
+    	long existingCount = wellInventoryRepo.countByBarIdAndSessionSessionIdAndWellWellId(barId, sessionId, wellId);
+        if (existingCount > 0) return;
     	InventorySession session = sessionRepo.findBySessionIdAndBarBarId(sessionId, barId)
     	        .orElseThrow(() -> new RuntimeException("Session not found"));
 
@@ -69,7 +72,7 @@ public class WellInventoryService {
         List<WellDistribution> distributions = wellDistributionRepo.findByWellSessionAndBar(wellId, sessionId, barId);
 
         Map<Long, Integer> receivedMap = distributions.stream().collect(Collectors.groupingBy(
-                WellDistribution::getBrandSizeId,
+                WellDistribution::getDepotBrandSizeId,  // ✅ fixed
                 Collectors.summingInt(WellDistribution::getDistributedQty)));
 
         List<WellInventory> toInsert = new ArrayList<>();
@@ -81,7 +84,7 @@ public class WellInventoryService {
          */
         for (WellInventory prev : previousInventory) {
             // ✅ FIX: Extract brandSizeId safely via the productPricing object graph
-            Long brandSizeId = prev.getProductPricing().getBrandSizeId();
+            Long brandSizeId = prev.getProductPricing().getDepotBrandSizeId();
 
             WellInventory inv = new WellInventory();
             inv.setBarId(barId); // ✅ FIX: Use primitive Long field assignment directly
@@ -99,7 +102,7 @@ public class WellInventoryService {
         }
 
         Set<Long> existingBrandSizeIds = toInsert.stream()
-                .map(i -> i.getProductPricing().getBrandSizeId()) // ✅ FIX: Reference actual Pricing object node
+                .map(i -> i.getProductPricing().getDepotBrandSizeId()) // ✅ FIX: Reference actual Pricing object node
                 .collect(Collectors.toSet());
 
         /*
@@ -108,8 +111,7 @@ public class WellInventoryService {
          * -----------------------------------------
          */
         for (WellDistribution dist : distributions) {
-            Long brandSizeId = dist.getBrandSizeId();
-
+        	Long brandSizeId = dist.getDepotBrandSizeId(); 
             if (existingBrandSizeIds.contains(brandSizeId)) {
                 continue;
             }
@@ -149,14 +151,16 @@ public class WellInventoryService {
      * -----------------------------------------
      */
     public void updateWellClosing(Long barId, Long sessionId, Long wellId, List<WellClosingRequest> requests) {
-    	sessionRepo.findBySessionIdAndBarBarId(sessionId, barId)
-        .orElseThrow(() -> new RuntimeException("Session not found"));
-     // ✅ FIX: Swapped to findByWellIdAndBarId
-        wellRepo.findByWellIdAndBarId(wellId, barId).orElseThrow(() -> new RuntimeException("Well not found"));
+        sessionRepo.findBySessionIdAndBarBarId(sessionId, barId)
+            .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        wellRepo.findByWellIdAndBarId(wellId, barId)
+            .orElseThrow(() -> new RuntimeException("Well not found"));
+
         for (WellClosingRequest req : requests) {
-            // ✅ FIX: Invokes repository layout criteria method perfectly
             WellInventory inv = wellInventoryRepo
-                    .findByBarIdAndSessionSessionIdAndWellWellIdAndProductPricingBrandSizeId(barId, sessionId, wellId, req.getBrandSizeId())
+                    .findByBarIdAndSessionSessionIdAndWellWellIdAndProductPricingDepotBrandSizeId(  // ✅ fixed
+                            barId, sessionId, wellId, req.getBrandSizeId())
                     .orElseThrow(() -> new RuntimeException("Inventory records not matching configuration maps."));
 
             int total = inv.getOpeningStock() + inv.getReceivedStock();
@@ -169,7 +173,7 @@ public class WellInventoryService {
 
             inv.setClosingStock(req.getClosingStock());
             inv.setSaleStock(calculatedSaleStock);
-         // ✅ FIX: Convert the Double selling price to BigDecimal before multiplying
+
             if (inv.getProductPricing().getSellingPrice() != null) {
                 inv.setAmount(BigDecimal.valueOf(calculatedSaleStock)
                         .multiply(BigDecimal.valueOf(inv.getProductPricing().getSellingPrice())));
@@ -183,7 +187,6 @@ public class WellInventoryService {
         List<WellInventory> all = wellInventoryRepo.findByBarIdAndSessionSessionIdAndWellWellId(barId, sessionId, wellId);
         all.forEach(i -> i.setStatus(InventoryStatus.COMPLETED));
     }
-
     // ✅ FIX: Aligned to findByBarIdAndSessionSessionId
     public boolean isSessionCompleted(Long barId, Long sessionId) {
         List<WellInventory> all = wellInventoryRepo.findByBarIdAndSessionSessionId(barId, sessionId);

@@ -23,5 +23,8 @@ public interface WellRepository extends JpaRepository<Well, Long> {
     
     // ✅ FIX: Changed from findByBar_BarId to flat primitive barId lookup
     List<Well> findByBarId(Long barId);
+    
+  
+    
 
 }

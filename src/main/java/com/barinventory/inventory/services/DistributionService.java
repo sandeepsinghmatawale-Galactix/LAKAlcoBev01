@@ -30,15 +30,11 @@ public class DistributionService {
     private final WellRepository wellRepo;
     private final InventorySessionRepository sessionRepo;
 
-    /*
-     * ----------------------------------------- CREATE DISTRIBUTION
-     * -----------------------------------------
-     */
     public Distribution createDistribution(Long barId, Long sessionId) {
         InventorySession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
-        if (!session.getBar().getBarId().equals(barId)) { // ✅ Fixed: Flat ID verification
+        if (!session.getBar().getBarId().equals(barId)) {
             throw new RuntimeException("Session does not belong to this bar");
         }
 
@@ -49,10 +45,6 @@ public class DistributionService {
         return distributionRepo.save(distribution);
     }
 
-    /*
-     * ----------------------------------------- MAIN DISTRIBUTION
-     * -----------------------------------------
-     */
     public void distributeStock(Long distributionId, List<DistributionRequest> requests) {
         validateInput(requests);
 
@@ -79,7 +71,7 @@ public class DistributionService {
         }
         for (DistributionRequest r : requests) {
             if (r.getDistributedQty() == null || r.getDistributedQty() <= 0) continue;
-            if (r.getBrandSizeId() == null || r.getBrandSizeId() == 0) continue;
+            if (r.getDepotBrandSizeId() == null || r.getDepotBrandSizeId() == 0) continue;
             if (r.getWellId() == null || r.getWellId() == 0) continue;
             if (r.getDistributedQty() < 0) {
                 throw new RuntimeException("Negative quantity not allowed");
@@ -87,49 +79,39 @@ public class DistributionService {
         }
     }
 
-    /*
-     * ----------------------------------------- STOCK VALIDATION
-     * -----------------------------------------
-     */
     private void validateAgainstStock(List<DistributionRequest> requests, List<StockroomInventory> stocks) {
         Map<Long, Integer> totalMap = new HashMap<>();
 
         for (DistributionRequest r : requests) {
             if (r.getDistributedQty() == null || r.getDistributedQty() <= 0) continue;
-            if (r.getBrandSizeId() == null || r.getBrandSizeId() == 0) continue;
-            totalMap.merge(r.getBrandSizeId(), r.getDistributedQty(), Integer::sum);
+            if (r.getDepotBrandSizeId() == null || r.getDepotBrandSizeId() == 0) continue;
+            totalMap.merge(r.getDepotBrandSizeId(), r.getDistributedQty(), Integer::sum);
         }
 
         for (StockroomInventory stock : stocks) {
             if (stock.getSaleStock() == null || stock.getSaleStock() == 0) continue;
-
-            Long brandSizeId = stock.getBrandSizeId(); // ✅ Fixed: Using flat primitive property lookup
-            int actual = totalMap.getOrDefault(brandSizeId, 0);
-
+            Long depotBrandSizeId = stock.getDepotBrandSizeId();
+            int actual = totalMap.getOrDefault(depotBrandSizeId, 0);
             if (actual != stock.getSaleStock()) {
-                throw new RuntimeException("Distribution validation mismatch for Brand Size variant reference target ID [ " 
-                        + brandSizeId + " ] | Expected Volume Count=" + stock.getSaleStock() + " | Calculated Distributed Total=" + actual);
+                throw new RuntimeException("Distribution mismatch for Brand Size ID [ "
+                        + depotBrandSizeId + " ] | Expected=" + stock.getSaleStock()
+                        + " | Distributed=" + actual);
             }
         }
     }
 
-    /*
-     * ----------------------------------------- PREPARE BATCH
-     * -----------------------------------------
-     */
     private List<WellDistribution> prepareBatch(List<DistributionRequest> requests, Distribution distribution) {
         List<WellDistribution> list = new ArrayList<>();
 
         for (DistributionRequest r : requests) {
             if (r.getDistributedQty() == null || r.getDistributedQty() <= 0) continue;
-            if (r.getBrandSizeId() == null || r.getWellId() == null) continue;
+            if (r.getDepotBrandSizeId() == null || r.getWellId() == null) continue;
 
             WellDistribution wd = new WellDistribution();
             wd.setDistribution(distribution);
-            
-            // ✅ Fixed: Zero database context crossover. Directly sets primitive entity table layout columns.
-            wd.setBrandSizeId(r.getBrandSizeId()); 
-            wd.setWell(wellRepo.getReferenceById(r.getWellId())); // Well configuration remains localized inside Inventory module boundaries
+            wd.setDepotBrandSizeId(r.getDepotBrandSizeId());   // ✅ fixed
+            wd.setDepotBrandId(r.getDepotBrandSizeId());            // ✅ fixed
+            wd.setWell(wellRepo.getReferenceById(r.getWellId()));
             wd.setDistributedQty(r.getDistributedQty());
             wd.setDistributedAt(LocalDateTime.now());
 
@@ -138,31 +120,24 @@ public class DistributionService {
         return list;
     }
 
-    /*
-     * ----------------------------------------- FINAL VALIDATION
-     * -----------------------------------------
-     */
     private void validateDistribution(Long sessionId, Long distributionId) {
         List<StockroomInventory> stocks = stockroomRepo.findDistributableStocks(sessionId);
 
         for (StockroomInventory stock : stocks) {
             if (stock.getSaleStock() == null || stock.getSaleStock() == 0) continue;
-
-            Integer distributedQty = wellDistributionRepo.getTotalDistributedQty(distributionId, stock.getBrandSizeId()); // ✅ Fixed
-
-            if (distributedQty == null) {
-                distributedQty = 0;
-            }
-
+            Integer distributedQty = wellDistributionRepo.getTotalDistributedQty(
+                    distributionId, stock.getDepotBrandSizeId());  // ✅ fixed
+            if (distributedQty == null) distributedQty = 0;
             if (!distributedQty.equals(stock.getSaleStock())) {
-                throw new RuntimeException("Final transaction alignment verification step rejected. Identity SKU reference total [ " 
-                        + stock.getBrandSizeId() + " ] does not match the session ledger values.");
+                throw new RuntimeException("Final validation failed for Brand Size ID [ "
+                        + stock.getDepotBrandSizeId() + " ]");
             }
         }
     }
 
     public Long getSessionIdByDistribution(Long distributionId) {
-        return distributionRepo.findById(distributionId).map(d -> d.getSession().getSessionId())
+        return distributionRepo.findById(distributionId)
+                .map(d -> d.getSession().getSessionId())
                 .orElseThrow(() -> new RuntimeException("Distribution not found"));
     }
 }

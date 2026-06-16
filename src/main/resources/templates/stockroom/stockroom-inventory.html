@@ -3,24 +3,32 @@
 <head>
     <title>Stockroom Inventory</title>
     <meta charset="UTF-8">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
           rel="stylesheet">
-
     <script>
         function calculateSale(row) {
+            let opening      = parseInt(row.querySelector('.opening').value)  || 0;
+            let received     = parseInt(row.querySelector('.received').value) || 0;
+            let closingInput = row.querySelector('.closing');
+            let closing      = parseInt(closingInput.value)  || 0;
+            
+            let totalStock = opening + received;
 
-            let opening =
-                parseInt(row.querySelector('.opening').value) || 0;
+            // HTML5 Validation Constraints
+            if (closing < 0) {
+                closingInput.setCustomValidity("Closing stock cannot be negative.");
+            } else if (closing > totalStock) {
+                closingInput.setCustomValidity("Closing stock cannot exceed total stock (" + totalStock + ").");
+            } else {
+                closingInput.setCustomValidity(""); // Clear standard error
+            }
 
-            let received =
-                parseInt(row.querySelector('.received').value) || 0;
+            // Triggers immediate browser visual warning validation bubble
+            closingInput.reportValidity();
 
-            let closing =
-                parseInt(row.querySelector('.closing').value) || 0;
-
-            row.querySelector('.sale').value =
-                (opening + received) - closing;
+            // Calculate sale safely (prevents odd negative visual values on screen)
+            let sale = totalStock - closing;
+            row.querySelector('.sale').value = sale < 0 ? 0 : sale;
         }
     </script>
 </head>
@@ -29,27 +37,19 @@
 
 <nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid">
-        <span class="navbar-brand">
-            Stockroom Closing Entry
-        </span>
+        <span class="navbar-brand">Stockroom Closing Entry</span>
     </div>
 </nav>
 
 <div class="container mt-5">
-
     <div class="card shadow p-4">
-
-        <h2 class="mb-4">
-            Stockroom Closing Entry
-        </h2>
+        <h2 class="mb-4">Stockroom Closing Entry</h2>
 
         <form th:action="@{/stockroom/closing/{sessionId}(sessionId=${sessionId})}"
               method="post">
 
             <table class="table table-bordered table-striped">
-
                 <thead class="table-dark">
-
                 <tr>
                     <th>Brand</th>
                     <th>Size</th>
@@ -58,28 +58,19 @@
                     <th>Closing</th>
                     <th>Sale</th>
                 </tr>
-
                 </thead>
 
                 <tbody>
-
                 <tr th:each="stock : ${stocks}">
 
-                    <!-- BRAND -->
                     <td>
-                        <span th:text="${stock.brandSize.brand.brandName}"></span>
-
-                        <input type="hidden"
+                        <span th:text="${stock.cachedBrandName}"></span>  <input type="hidden"
                                name="brandSizeId"
-                               th:value="${stock.brandSize.brandSizeId}">
-                    </td>
+                               th:value="${stock.depotBrandSizeId}">      </td>
 
-                    <!-- SIZE -->
                     <td>
-                        <span th:text="${stock.brandSize.sizeMl + ' ML'}"></span>
-                    </td>
+                        <span th:text="${stock.cachedSizeMl + ' ML'}"></span>  </td>
 
-                    <!-- OPENING -->
                     <td>
                         <input type="text"
                                class="form-control opening"
@@ -87,7 +78,6 @@
                                readonly>
                     </td>
 
-                    <!-- RECEIVED -->
                     <td>
                         <input type="text"
                                class="form-control received"
@@ -95,16 +85,18 @@
                                readonly>
                     </td>
 
-                    <!-- CLOSING -->
                     <td>
                         <input type="number"
                                class="form-control closing"
                                name="closingStock"
+                               min="0"
+                               th:max="${stock.openingStock + stock.receivedStock}"
+                               oninput="calculateSale(this.closest('tr'))"
                                onkeyup="calculateSale(this.closest('tr'))"
+                               title="Closing stock must be between 0 and total stock (Opening + Received)"
                                required>
                     </td>
 
-                    <!-- SALE -->
                     <td>
                         <input type="text"
                                class="form-control sale"
@@ -112,19 +104,15 @@
                     </td>
 
                 </tr>
-
                 </tbody>
-
             </table>
 
-            <button class="btn btn-success w-100">
+            <button class="btn btn-success w-100" type="submit">
                 Submit Stockroom Closing
             </button>
 
         </form>
-
     </div>
-
 </div>
 
 </body>

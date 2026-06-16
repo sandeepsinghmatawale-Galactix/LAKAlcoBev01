@@ -72,9 +72,14 @@
 
 <body>
 
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+        <span class="navbar-brand">Distribution Management</span>
+    </div>
+</nav>
+
 <div class="container mt-5">
 
-    <!-- Toast -->
     <div id="toastMsg"
          style="display:none; position:fixed; top:20px; right:20px;
                 background:#dc3545; color:white; padding:10px 20px; border-radius:5px;">
@@ -84,18 +89,15 @@
 
         <h2>Allocate Stock To Wells</h2>
 
-        <!-- ERROR -->
-        <div th:if="${error}" class="alert alert-danger">
+        <div th:if="${error}" class="alert alert-danger mb-3">
             <span th:text="${error}"></span>
         </div>
 
-        <!-- FORM -->
         <form th:action="@{/distribution/allocate/{id}(id=${distributionId})}"
               th:object="${wrapper}"
               method="post"
               onsubmit="if(!validateForm()){ showToast('Please fully distribute all stock!'); return false;}">
 
-            <!-- CSRF -->
             <input type="hidden"
                    th:if="${_csrf != null}"
                    th:name="${_csrf.parameterName}"
@@ -116,61 +118,58 @@
 
                     <tbody>
 
-                    <!-- BRAND LOOP -->
-                    <th:block th:each="brand, bStat : ${brands}">
+                    <!-- ✅ PRICING LOOP — replaces old brands/brandSizes loop -->
+                    <tr th:each="pricing : ${pricings}"
+                        th:if="${stockMap.containsKey(pricing.depotBrandSizeId)}">
 
-                        <!-- SIZE LOOP -->
-                        <th:block th:each="size, sStat : ${brand.brandSizes}">
+                        <!-- BRAND NAME — from cached field -->
+                        <td th:text="${pricing.cachedBrandName}"></td>
 
-                            <tr>
+                        <!-- SIZE — from cached field -->
+                        <td th:text="${pricing.cachedSizeMl + ' ML'}"></td>
 
-                                <!-- BRAND NAME -->
-                                <td th:text="${brand.brandName}"></td>
+                        <!-- AVAILABLE -->
+                        <td>
+                            <input type="text"
+                                   class="form-control available"
+                                   th:value="${stockMap[pricing.depotBrandSizeId]}"
+                                   readonly>
+                        </td>
 
-                                <!-- SIZE -->
-                                <td th:text="${size.sizeMl + ' ML'}"></td>
+                        <!-- REMAINING -->
+                        <td>
+                            <input type="text"
+                                   class="form-control remaining"
+                                   th:value="${stockMap[pricing.depotBrandSizeId]}"
+                                   readonly>
+                        </td>
 
-                                <!-- AVAILABLE -->
-                                <td>
-                                    <input type="text"
-                                           class="form-control available"
-                                           th:value="${stockMap.containsKey(size.brandSizeId) ? stockMap[size.brandSizeId] : 0}"
-                                           readonly>
-                                </td>
+                        <!-- WELL COLUMNS -->
+                        <td th:each="well : ${wells}"
+                            th:with="idx=${indexMap[pricing.depotBrandSizeId + '_' + well.wellId]}">
 
-                                <!-- REMAINING -->
-                                <td>
-                                    <input type="text"
-                                           class="form-control remaining"
-                                           th:value="${stockMap.containsKey(size.brandSizeId) ? stockMap[size.brandSizeId] : 0}"
-                                           readonly>
-                                </td>
+                            <input type="hidden"
+                                   th:field="*{requests[__${idx}__].depotBrandSizeId}"
+                                   th:value="${pricing.depotBrandSizeId}"/>
 
-                                <!-- WELL COLUMNS -->
-								<td th:each="well, wStat : ${wells}"
-								    th:with="idx=${indexMap[size.brandSizeId + '_' + well.wellId]}">
-                                    <input type="hidden"
-                                           th:field="*{requests[__${idx}__].brandSizeId}"
-                                           th:value="${size.brandSizeId}"/>
+                            <input type="hidden"
+                                   th:field="*{requests[__${idx}__].depotBrandId}"
+                                   th:value="${pricing.depotBrandId}"/>
 
-                                    <input type="hidden"
-                                           th:field="*{requests[__${idx}__].wellId}"
-                                           th:value="${well.wellId}"/>
+                            <input type="hidden"
+                                   th:field="*{requests[__${idx}__].wellId}"
+                                   th:value="${well.wellId}"/>
 
-                                    <input type="number"
-                                           class="form-control qty"
-                                           th:field="*{requests[__${idx}__].distributedQty}"
-                                           min="0"
-                                           value="0"
-                                           oninput="validateRow(this.closest('tr'))"/>
+                            <input type="number"
+                                   class="form-control qty"
+                                   th:field="*{requests[__${idx}__].distributedQty}"
+                                   min="0"
+                                   value="0"
+                                   oninput="validateRow(this.closest('tr'))"/>
 
-                                </td>
+                        </td>
 
-                            </tr>
-
-                        </th:block>
-
-                    </th:block>
+                    </tr>
 
                     </tbody>
                 </table>
@@ -183,7 +182,6 @@
             </button>
 
         </form>
-
     </div>
 </div>
 

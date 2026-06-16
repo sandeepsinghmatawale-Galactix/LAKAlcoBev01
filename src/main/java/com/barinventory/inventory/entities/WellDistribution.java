@@ -23,11 +23,14 @@ public class WellDistribution {
     @JoinColumn(name="well_id")
     private Well well; // Safe: maps to a Well configuration within your inventory layout
 
+
+
+    
     @Column(name = "depot_brand_id", nullable = false)
-    private Long brandId; // ✅ Decoupled ID
+    private Long depotBrandId;  // ✅ renamed from brandId
 
     @Column(name = "depot_brand_size_id", nullable = false)
-    private Long brandSizeId; // ✅ Decoupled ID
+    private Long depotBrandSizeId;  // ✅ renamed from brandSizeId
     
     private Integer distributedQty;
     private LocalDateTime distributedAt;

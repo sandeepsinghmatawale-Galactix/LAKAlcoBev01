@@ -21,8 +21,10 @@ public class StockroomInventory {
     @Column(name = "bar_id", nullable = false)
     private Long barId; // ✅ Decoupled ID
 
+   
+    
     @Column(name = "depot_brand_size_id", nullable = false)
-    private Long brandSizeId; // ✅ Decoupled ID pointing to Admin Depot Catalog
+    private Long depotBrandSizeId;
 
     private Integer openingStock;
     private Integer receivedStock;

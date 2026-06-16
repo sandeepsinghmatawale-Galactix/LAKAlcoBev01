@@ -1,5 +1,6 @@
 package com.barinventory.inventory.repos;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,4 +24,9 @@ public interface InventorySessionRepository extends JpaRepository<InventorySessi
     Optional<InventorySession> findBySessionIdAndBarBarId(Long sessionId, Long barId);
 
     List<InventorySession> findByBarBarId(Long barId);
+    
+      
+
+    List<InventorySession> findByBarBarIdAndSessionDateBetweenOrderBySessionDateDesc(
+        Long barId, LocalDateTime from, LocalDateTime to);
 }

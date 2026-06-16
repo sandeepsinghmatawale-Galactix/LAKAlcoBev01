@@ -21,4 +21,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("windowStart") LocalDateTime windowStart, 
             @Param("windowEnd") LocalDateTime windowEnd
     );
+    
+   
+     
+    
+    
+    
 }
