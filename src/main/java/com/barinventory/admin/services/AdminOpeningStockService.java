@@ -1,7 +1,5 @@
 package com.barinventory.admin.services;
 
-// admin/services/AdminOpeningStockService.java
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,11 +47,10 @@ public class AdminOpeningStockService {
     private final DepotBrandSizePackRepository packRepository;
 
     public BarWellsResponse getBarWells(Long barId) {
-
         Bar bar = barRepository.findById(barId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bar not found: " + barId));
 
-        List<BarWellsResponse.WellDto> wells = wellRepo.findByBarId(barId)
+        List<BarWellsResponse.WellDto> wells = wellRepo.findByBarIdAndActiveTrue(barId)
                 .stream()
                 .map(w -> new BarWellsResponse.WellDto(w.getWellId(), w.getWellName()))
                 .toList();
@@ -87,50 +84,22 @@ public class AdminOpeningStockService {
         if (req.stockroomLines() != null) {
             for (StockroomOpeningLine line : req.stockroomLines()) {
 
-                BarProductPricing pricing = pricingRepo
-                        .findByBarIdAndDepotBrandSizeId(req.barId(), line.depotBrandSizeId())
-                        .orElseGet(() -> {
-                            BarProductPricing p = new BarProductPricing();
+                BarProductPricing pricing = getOrCreatePricing(
+                        req.barId(),
+                        line.depotPackId(),
+                        line.depotBrandSizeId(),
+                        line.brandName(),
+                        line.sizeMl(),
+                        line.packagingType(),
+                        line.mrp(),
+                        line.purchasePricePerUnit(),
+                        line.sellingPrice()
+                );
 
-                            p.setBarId(req.barId());
-                            p.setDepotBrandSizeId(line.depotBrandSizeId());
-                            p.setDepotPackId(line.depotPackId());
-
-                            p.setDepotBrandId(
-                                    packRepository.findById(line.depotPackId())
-                                            .map(pack -> pack.getBrandSize().getBrand().getBrandId())
-                                            .orElseThrow(() -> new ResourceNotFoundException(
-                                                    "Pack not found: " + line.depotPackId()
-                                            ))
-                            );
-
-                            p.setCachedBrandName(line.brandName());
-                            p.setCachedSizeMl(line.sizeMl());
-                            p.setCachedPackagingType(line.packagingType());
-                            p.setCachedMrp(line.mrp());
-
-                            p.setPurchasePrice(line.purchasePricePerUnit());
-                            p.setSellingPrice(line.sellingPrice() != null ? line.sellingPrice() : line.mrp());
-                            p.setPriceLockedToMrp(line.sellingPrice() == null);
-
-                            p.setStatus(BarPricingStatus.ACTIVE);
-                            p.setCreatedAt(LocalDateTime.now());
-                            p.setUpdatedAt(LocalDateTime.now());
-
-                            return pricingRepo.save(p);
-                        });
-
-                pricing.setDepotPackId(line.depotPackId());
-                pricing.setCachedBrandName(line.brandName());
-                pricing.setCachedSizeMl(line.sizeMl());
-                pricing.setCachedPackagingType(line.packagingType());
-                pricing.setCachedMrp(line.mrp());
                 pricing.setPurchasePrice(line.purchasePricePerUnit());
                 pricing.setSellingPrice(line.sellingPrice() != null ? line.sellingPrice() : line.mrp());
                 pricing.setPriceLockedToMrp(line.sellingPrice() == null);
-                pricing.setStatus(BarPricingStatus.ACTIVE);
                 pricing.setUpdatedAt(LocalDateTime.now());
-
                 pricingRepo.save(pricing);
 
                 boolean batchExists = stockBatchRepo
@@ -139,7 +108,6 @@ public class AdminOpeningStockService {
 
                 if (!batchExists) {
                     StockBatch batch = new StockBatch();
-
                     batch.setBarId(req.barId());
                     batch.setDepotPackId(line.depotPackId());
                     batch.setQuantityReceived(line.openingQty());
@@ -148,7 +116,6 @@ public class AdminOpeningStockService {
                     batch.setInvoiceRefNo("OPENING-STOCK");
                     batch.setReceivedAt(LocalDateTime.now());
                     batch.setCreatedAt(LocalDateTime.now());
-
                     stockBatchRepo.save(batch);
                 }
 
@@ -162,7 +129,6 @@ public class AdminOpeningStockService {
                             stockroomRepo.save(existing);
                         }, () -> {
                             StockroomInventory stockroom = new StockroomInventory();
-
                             stockroom.setBarId(req.barId());
                             stockroom.setDepotBrandSizeId(line.depotBrandSizeId());
                             stockroom.setSession(null);
@@ -170,7 +136,6 @@ public class AdminOpeningStockService {
                             stockroom.setReceivedStock(0);
                             stockroom.setClosingStock(line.openingQty());
                             stockroom.setSaleStock(0);
-
                             stockroomRepo.save(stockroom);
                         });
 
@@ -186,12 +151,11 @@ public class AdminOpeningStockService {
 
                 Well well = wellMap.get(line.wellId());
 
-                BarProductPricing pricing = pricingRepo
-                        .findByBarIdAndDepotBrandSizeId(req.barId(), line.depotBrandSizeId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "No pricing found for packId " + line.depotPackId()
-                                        + ". Add this SKU to stockroom opening stock first."
-                        ));
+                BarProductPricing pricing = getOrCreatePricingFromDepot(
+                        req.barId(),
+                        line.depotPackId(),
+                        line.depotBrandSizeId()
+                );
 
                 wellInventoryRepo
                         .findByBarIdAndWellWellIdAndProductPricingIdAndSessionIsNull(
@@ -209,7 +173,6 @@ public class AdminOpeningStockService {
                             wellInventoryRepo.save(existing);
                         }, () -> {
                             WellInventory wi = new WellInventory();
-
                             wi.setBarId(req.barId());
                             wi.setWell(well);
                             wi.setProductPricing(pricing);
@@ -220,7 +183,6 @@ public class AdminOpeningStockService {
                             wi.setSaleStock(0);
                             wi.setAmount(BigDecimal.ZERO);
                             wi.setStatus(InventoryStatus.IN_PROGRESS);
-
                             wellInventoryRepo.save(wi);
                         });
 
@@ -246,5 +208,75 @@ public class AdminOpeningStockService {
                 wellLinesCount,
                 wellSummaries
         );
+    }
+
+    private BarProductPricing getOrCreatePricingFromDepot(
+            Long barId,
+            Long depotPackId,
+            Long depotBrandSizeId
+    ) {
+        var pack = packRepository.findById(depotPackId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pack not found: " + depotPackId));
+
+        return getOrCreatePricing(
+                barId,
+                depotPackId,
+                depotBrandSizeId,
+                pack.getBrandSize().getBrand().getBrandName(),
+                pack.getBrandSize().getSizeMl(),
+                pack.getPackagingType() != null ? pack.getPackagingType().name() : null,
+                null,
+                0.0,
+                0.0
+        );
+    }
+
+    private BarProductPricing getOrCreatePricing(
+            Long barId,
+            Long depotPackId,
+            Long depotBrandSizeId,
+            String brandName,
+            Integer sizeMl,
+            String packagingType,
+            Double mrp,
+            Double purchasePrice,
+            Double sellingPrice
+    ) {
+        return pricingRepo
+                .findByBarIdAndDepotBrandSizeId(barId, depotBrandSizeId)
+                .map(existing -> {
+                    existing.setDepotPackId(depotPackId);
+                    existing.setCachedBrandName(brandName);
+                    existing.setCachedSizeMl(sizeMl);
+                    existing.setCachedPackagingType(packagingType);
+                    existing.setCachedMrp(mrp);
+                    existing.setPurchasePrice(purchasePrice);
+                    existing.setSellingPrice(sellingPrice != null ? sellingPrice : mrp);
+                    existing.setPriceLockedToMrp(sellingPrice == null);
+                    existing.setStatus(BarPricingStatus.ACTIVE);
+                    existing.setUpdatedAt(LocalDateTime.now());
+                    return pricingRepo.save(existing);
+                })
+                .orElseGet(() -> {
+                    var pack = packRepository.findById(depotPackId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Pack not found: " + depotPackId));
+
+                    BarProductPricing p = new BarProductPricing();
+                    p.setBarId(barId);
+                    p.setDepotBrandSizeId(depotBrandSizeId);
+                    p.setDepotPackId(depotPackId);
+                    p.setDepotBrandId(pack.getBrandSize().getBrand().getBrandId());
+                    p.setCachedBrandName(brandName);
+                    p.setCachedSizeMl(sizeMl);
+                    p.setCachedPackagingType(packagingType);
+                    p.setCachedMrp(mrp);
+                    p.setPurchasePrice(purchasePrice);
+                    p.setSellingPrice(sellingPrice != null ? sellingPrice : mrp);
+                    p.setPriceLockedToMrp(sellingPrice == null);
+                    p.setStatus(BarPricingStatus.ACTIVE);
+                    p.setCreatedAt(LocalDateTime.now());
+                    p.setUpdatedAt(LocalDateTime.now());
+                    return pricingRepo.save(p);
+                });
     }
 }

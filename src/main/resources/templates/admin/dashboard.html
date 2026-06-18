@@ -793,6 +793,13 @@
                                     onclick="openOpeningStockForBar(this.dataset.barId)">
                                 📦 Stock
                             </button>
+							<button type="button"
+							        class="btn-primary"
+							        style="font-size:12px;padding:6px 12px;"
+							        th:data-bar-id="${bar.barId}"
+							        onclick="window.location='/admin/wells?barId=' + this.dataset.barId">
+							    🍺 Wells
+							</button>
                         </td>
                     </tr>
 
@@ -999,7 +1006,6 @@
         </div>
     </div>
 </div>
-
 <script>
     let activeBarId = null;
 
@@ -1088,8 +1094,16 @@
             barWells = wellsData.wells || [];
 
             stockroomRows = [];
+            barWells.forEach(well => well.lines = []);
+
             document.getElementById('skuSearchInput').value = '';
             document.getElementById('skuSuggestions').style.display = 'none';
+
+            const btn = document.getElementById('saveOpeningStockBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '✅ Save Opening Stock';
+            }
 
             renderStockroomTable();
             renderWellsTables();
@@ -1104,6 +1118,12 @@
 
     function getSelectedOpeningStockBarId() {
         return document.getElementById('osBarSelect').value;
+    }
+
+    function getSkuMrp(sku) {
+        if (sku.currentMrp != null) return Number(sku.currentMrp);
+        if (sku.mrp != null) return Number(sku.mrp);
+        return null;
     }
 
     function searchSkuSuggestions() {
@@ -1132,6 +1152,7 @@
         }
 
         matches.forEach(sku => {
+            const mrp = getSkuMrp(sku);
             const item = document.createElement('div');
             item.className = 'suggestion-item';
 
@@ -1140,7 +1161,7 @@
                     ${escapeHtml(sku.brandName)} · ${escapeHtml(sku.sizeMl)}ml · ${escapeHtml(sku.packagingType)}
                 </div>
                 <div class="suggestion-meta">
-                    MRP: ₹${escapeHtml(sku.mrp ?? '-')} · Pack ID: ${escapeHtml(sku.packId)}
+                    MRP: ₹${escapeHtml(mrp ?? '-')} · Pack ID: ${escapeHtml(sku.packId)}
                 </div>
             `;
 
@@ -1158,6 +1179,7 @@
 
     function addSkuToStockroom(sku) {
         const existing = stockroomRows.find(row => String(row.depotPackId) === String(sku.packId));
+        const mrp = getSkuMrp(sku);
 
         if (existing) {
             existing.openingQty += 1;
@@ -1168,10 +1190,10 @@
                 brandName: sku.brandName || '',
                 sizeMl: Number(sku.sizeMl || 0),
                 packagingType: sku.packagingType || '',
-                mrp: sku.currentMrp != null ? Number(sku.currentMrp) : null,
+                mrp: mrp,
                 openingQty: 1,
                 purchasePricePerUnit: 0,
-               sellingPrice: sku.currentMrp != null ? Number(sku.currentMrp) : 0,
+                sellingPrice: mrp != null ? mrp : 0,
                 invoiceRefNo: ''
             });
         }
@@ -1189,7 +1211,7 @@
             tbody.innerHTML = `
                 <tr>
                     <td colspan="8">
-                        <div class="empty-state">Search and add SKUs to begin opening stock entry.</div>
+                        <div class="empty-state">Search and add SKUs to begin stockroom opening entry.</div>
                     </td>
                 </tr>
             `;
@@ -1220,7 +1242,7 @@
                 </td>
                 <td>
                     <input type="text" value="${escapeHtml(row.invoiceRefNo)}"
-                           placeholder="INV-001"
+                           placeholder="Optional"
                            oninput="updateStockroomField(${index}, 'invoiceRefNo', this.value)">
                 </td>
                 <td>
@@ -1237,7 +1259,6 @@
 
         if (field === 'openingQty') {
             stockroomRows[index][field] = Number(value || 0);
-            trimWellQtyIfNeeded(stockroomRows[index].depotPackId);
         } else if (field === 'purchasePricePerUnit' || field === 'sellingPrice') {
             stockroomRows[index][field] = Number(value || 0);
         } else {
@@ -1249,242 +1270,203 @@
     }
 
     function removeStockroomSku(index) {
-        const removed = stockroomRows[index];
-
         stockroomRows.splice(index, 1);
-
-        if (removed) {
-            barWells.forEach(well => {
-                if (!well.lines) return;
-                well.lines = well.lines.filter(line => String(line.depotPackId) !== String(removed.depotPackId));
-            });
-        }
-
         renderStockroomTable();
         renderWellsTables();
         updateOpeningStockSummary();
     }
-	function renderWellsTables() {
-	    const container = document.getElementById('wellsContainer');
-	    container.innerHTML = '';
 
-	    if (!getSelectedOpeningStockBarId()) {
-	        container.innerHTML = '<div class="empty-state">Select a bar first.</div>';
-	        return;
-	    }
+    function renderWellsTables() {
+        const container = document.getElementById('wellsContainer');
+        container.innerHTML = '';
 
-	    if (stockroomRows.length === 0) {
-	        container.innerHTML = '<div class="empty-state">Add stockroom SKUs first. Wells can only use stockroom SKUs.</div>';
-	        return;
-	    }
+        if (!getSelectedOpeningStockBarId()) {
+            container.innerHTML = '<div class="empty-state">Select a bar first.</div>';
+            return;
+        }
 
-	    if (barWells.length === 0) {
-	        container.innerHTML = '<div class="empty-state">No wells found for this bar.</div>';
-	        return;
-	    }
+        if (barWells.length === 0) {
+            container.innerHTML = '<div class="empty-state">No wells found for this bar.</div>';
+            return;
+        }
 
-	    barWells.forEach(well => {
-	        if (!well.lines) {
-	            well.lines = [];
-	        }
+        barWells.forEach(well => {
+            if (!well.lines) {
+                well.lines = [];
+            }
 
-	        well.lines = well.lines.filter(line =>
-	            stockroomRows.some(sku => String(sku.depotPackId) === String(line.depotPackId))
-	        );
+            const block = document.createElement('div');
+            block.className = 'well-block';
 
-	        const block = document.createElement('div');
-	        block.className = 'well-block';
+            let rowsHtml = '';
 
-	        let rowsHtml = '';
+            well.lines.forEach((line, lineIndex) => {
+                const sku = allCatalogSkus.find(row => String(row.packId) === String(line.depotPackId));
+                if (!sku) return;
 
-	        well.lines.forEach((line, lineIndex) => {
-	            const sku = stockroomRows.find(row => String(row.depotPackId) === String(line.depotPackId));
-	            if (!sku) return;
+                const mrp = getSkuMrp(sku);
 
-	            rowsHtml += `
-	                <tr id="well_tr_${well.wellId}_${lineIndex}">
-	                    <td>
-	                        <div class="sku-name">${escapeHtml(sku.brandName)}</div>
-	                        <div class="sku-meta">MRP: ₹${escapeHtml(sku.mrp ?? '-')}</div>
-	                    </td>
-	                    <td>${escapeHtml(sku.sizeMl)}ml</td>
-	                    <td>${escapeHtml(sku.packagingType)}</td>
-	                    <td>${escapeHtml(sku.openingQty)}</td>
-	                    <td>
-	                        <input type="number"
-	                               min="0"
-	                               max="${escapeHtml(sku.openingQty)}"
-	                               value="${escapeHtml(line.openingQty)}"
-	                               oninput="updateWellQty(${well.wellId}, ${lineIndex}, this.value)">
-	                        <div class="max-note">Max: ${escapeHtml(sku.openingQty)}</div>
-	                    </td>
-	                    <td>
-	                        <button type="button"
-	                                class="btn-danger"
-	                                onclick="removeWellSku(${well.wellId}, ${lineIndex}, '${sku.depotPackId}')">
-	                            ×
-	                        </button>
-	                    </td>
-	                </tr>
-	            `;
-	        });
+                rowsHtml += `
+                    <tr id="well_tr_${well.wellId}_${lineIndex}">
+                        <td>
+                            <div class="sku-name">${escapeHtml(sku.brandName)}</div>
+                            <div class="sku-meta">Pack ID: ${escapeHtml(sku.packId)} · MRP: ₹${escapeHtml(mrp ?? '-')}</div>
+                        </td>
+                        <td>${escapeHtml(sku.sizeMl)}ml</td>
+                        <td>${escapeHtml(sku.packagingType)}</td>
+                        <td>
+                            <input type="number"
+                                   min="0"
+                                   value="${escapeHtml(line.openingQty)}"
+                                   oninput="updateWellQty(${well.wellId}, ${lineIndex}, this.value)">
+                        </td>
+                        <td>
+                            <button type="button"
+                                    class="btn-danger"
+                                    onclick="removeWellSku(${well.wellId}, '${line.depotPackId}')">
+                                ×
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
 
-	        block.innerHTML = `
-	            <div class="well-header">🍺 ${escapeHtml(well.wellName || 'Well')}</div>
+            block.innerHTML = `
+                <div class="well-header">🍺 ${escapeHtml(well.wellName || 'Well')}</div>
 
-	            <div class="os-toolbar" style="grid-template-columns:1fr;margin-bottom:10px;">
-	                <div>
-	                    <label>Search Stockroom SKU</label>
-	                    <input type="text"
-	                           id="well_search_${well.wellId}"
-	                           placeholder="Search stockroom SKU to add..."
-	                           oninput="filterWellSearch(${well.wellId})"
-	                           autocomplete="off">
-	                </div>
-	            </div>
+                <div class="os-toolbar" style="grid-template-columns:1fr;margin-bottom:10px;">
+                    <div>
+                        <label>Search Depot SKU for this Well</label>
+                        <input type="text"
+                               id="well_search_${well.wellId}"
+                               placeholder="Search from full depot catalog..."
+                               oninput="filterWellSearch(${well.wellId})"
+                               autocomplete="off">
+                    </div>
+                </div>
 
-	            <div id="well_search_results_${well.wellId}"
-	                 style="border:1px solid #e0e0e0;border-radius:4px;max-height:160px;overflow-y:auto;display:none;margin-bottom:10px;background:white;font-size:13px;">
-	            </div>
+                <div id="well_search_results_${well.wellId}"
+                     style="border:1px solid #e0e0e0;border-radius:4px;max-height:160px;overflow-y:auto;display:none;margin-bottom:10px;background:white;font-size:13px;">
+                </div>
 
-	            <div class="table-wrap">
-	                <table class="os-table">
-	                    <thead>
-	                        <tr>
-	                            <th>Brand</th>
-	                            <th>Size</th>
-	                            <th>Pack</th>
-	                            <th>Stockroom Qty</th>
-	                            <th>Well Opening Qty</th>
-	                            <th>Remove</th>
-	                        </tr>
-	                    </thead>
-	                    <tbody id="well_tbody_${well.wellId}">
-	                        ${rowsHtml || '<tr><td colspan="6"><div class="empty-state">Search and add SKU for this well.</div></td></tr>'}
-	                    </tbody>
-	                </table>
-	            </div>
-	        `;
+                <div class="table-wrap">
+                    <table class="os-table">
+                        <thead>
+                            <tr>
+                                <th>Brand</th>
+                                <th>Size</th>
+                                <th>Pack</th>
+                                <th>Well Opening Qty</th>
+                                <th>Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody id="well_tbody_${well.wellId}">
+                            ${rowsHtml || '<tr><td colspan="5"><div class="empty-state">Search and add SKU for this well.</div></td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
 
-	        container.appendChild(block);
-	    });
-	}	function filterWellSearch(wellId) {
-	    const input = document.getElementById(`well_search_${wellId}`);
-	    const resultsEl = document.getElementById(`well_search_results_${wellId}`);
+            container.appendChild(block);
+        });
+    }
 
-	    const q = input.value.toLowerCase().trim();
+    function filterWellSearch(wellId) {
+        const input = document.getElementById(`well_search_${wellId}`);
+        const resultsEl = document.getElementById(`well_search_results_${wellId}`);
 
-	    if (!q) {
-	        resultsEl.style.display = 'none';
-	        return;
-	    }
+        const q = input.value.toLowerCase().trim();
 
-	    const well = barWells.find(w => String(w.wellId) === String(wellId));
+        if (!q) {
+            resultsEl.style.display = 'none';
+            return;
+        }
 
-	    const matches = stockroomRows.filter(sku => {
-	        const alreadyAdded = well?.lines?.some(l => String(l.depotPackId) === String(sku.depotPackId));
-	        const text = `${sku.brandName} ${sku.sizeMl} ${sku.packagingType}`.toLowerCase();
+        const well = barWells.find(w => String(w.wellId) === String(wellId));
 
-	        return !alreadyAdded && text.includes(q);
-	    });
+        const matches = allCatalogSkus.filter(sku => {
+            const alreadyAdded = well?.lines?.some(l => String(l.depotPackId) === String(sku.packId));
+            const text = `${sku.brandName || ''} ${sku.sizeMl || ''} ${sku.packagingType || ''}`.toLowerCase();
 
-	    if (!matches.length) {
-	        resultsEl.innerHTML = '<div style="padding:10px;color:#888;">No matching stockroom SKU</div>';
-	        resultsEl.style.display = 'block';
-	        return;
-	    }
+            return !alreadyAdded && text.includes(q);
+        }).slice(0, 20);
 
-	    resultsEl.innerHTML = matches.map(sku => `
-	        <div onclick="addWellSku(${wellId}, '${sku.depotPackId}')"
-	             style="padding:8px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;">
-	            <span>
-	                <b>${escapeHtml(sku.brandName)}</b>
-	                <span style="margin-left:6px;font-size:11px;background:#e8f0fe;color:#1a73e8;padding:2px 6px;border-radius:4px;">
-	                    ${escapeHtml(sku.sizeMl)}ml
-	                </span>
-	                <span style="margin-left:4px;font-size:11px;background:#f1f3f4;padding:2px 6px;border-radius:4px;">
-	                    ${escapeHtml(sku.packagingType)}
-	                </span>
-	            </span>
-	            <span style="font-size:12px;color:#888;">
-	                Stock: ${escapeHtml(sku.openingQty)}
-	                <span style="color:#1a73e8;margin-left:8px;">+ Add</span>
-	            </span>
-	        </div>
-	    `).join('');
+        if (!matches.length) {
+            resultsEl.innerHTML = '<div style="padding:10px;color:#888;">No matching depot SKU</div>';
+            resultsEl.style.display = 'block';
+            return;
+        }
 
-	    resultsEl.style.display = 'block';
-	}
+        resultsEl.innerHTML = matches.map(sku => `
+            <div onclick="addWellSku(${wellId}, '${sku.packId}')"
+                 style="padding:8px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;">
+                <span>
+                    <b>${escapeHtml(sku.brandName)}</b>
+                    <span style="margin-left:6px;font-size:11px;background:#e8f0fe;color:#1a73e8;padding:2px 6px;border-radius:4px;">
+                        ${escapeHtml(sku.sizeMl)}ml
+                    </span>
+                    <span style="margin-left:4px;font-size:11px;background:#f1f3f4;padding:2px 6px;border-radius:4px;">
+                        ${escapeHtml(sku.packagingType)}
+                    </span>
+                </span>
+                <span style="font-size:12px;color:#888;">
+                    MRP: ₹${escapeHtml(getSkuMrp(sku) ?? '-')}
+                    <span style="color:#1a73e8;margin-left:8px;">+ Add</span>
+                </span>
+            </div>
+        `).join('');
 
-	function addWellSku(wellId, packId) {
-	    const well = barWells.find(w => String(w.wellId) === String(wellId));
-	    if (!well) return;
+        resultsEl.style.display = 'block';
+    }
 
-	    if (!well.lines) {
-	        well.lines = [];
-	    }
+    function addWellSku(wellId, packId) {
+        const well = barWells.find(w => String(w.wellId) === String(wellId));
+        if (!well) return;
 
-	    if (well.lines.some(l => String(l.depotPackId) === String(packId))) {
-	        alert('SKU already added to this well.');
-	        return;
-	    }
+        if (!well.lines) {
+            well.lines = [];
+        }
 
-	    const sku = stockroomRows.find(s => String(s.depotPackId) === String(packId));
-	    if (!sku) return;
+        if (well.lines.some(l => String(l.depotPackId) === String(packId))) {
+            alert('SKU already added to this well.');
+            return;
+        }
 
-	    well.lines.push({
-	        wellId: Number(wellId),
-	        depotPackId: Number(sku.depotPackId),
-	        depotBrandSizeId: Number(sku.depotBrandSizeId),
-	        openingQty: 0
-	    });
+        const sku = allCatalogSkus.find(s => String(s.packId) === String(packId));
+        if (!sku) return;
 
-	    renderWellsTables();
-	    updateOpeningStockSummary();
-	}
+        well.lines.push({
+            wellId: Number(wellId),
+            depotPackId: Number(sku.packId),
+            depotBrandSizeId: Number(sku.brandSizeId),
+            openingQty: 0
+        });
 
-	function removeWellSku(wellId, lineIndex, packId) {
-	    const well = barWells.find(w => String(w.wellId) === String(wellId));
+        renderWellsTables();
+        updateOpeningStockSummary();
+    }
 
-	    if (well && well.lines) {
-	        well.lines = well.lines.filter(l => String(l.depotPackId) !== String(packId));
-	    }
+    function removeWellSku(wellId, packId) {
+        const well = barWells.find(w => String(w.wellId) === String(wellId));
 
-	    renderWellsTables();
-	    updateOpeningStockSummary();
-	}
+        if (well && well.lines) {
+            well.lines = well.lines.filter(l => String(l.depotPackId) !== String(packId));
+        }
+
+        renderWellsTables();
+        updateOpeningStockSummary();
+    }
 
     function updateWellQty(wellId, lineIndex, value) {
         const well = barWells.find(w => Number(w.wellId) === Number(wellId));
         if (!well || !well.lines || !well.lines[lineIndex]) return;
 
-        const line = well.lines[lineIndex];
-        const stockroomSku = stockroomRows.find(sku => String(sku.depotPackId) === String(line.depotPackId));
-
         let qty = Number(value || 0);
-        const max = stockroomSku ? Number(stockroomSku.openingQty || 0) : 0;
-
-        if (qty > max) qty = max;
         if (qty < 0) qty = 0;
 
-        line.openingQty = qty;
-        renderWellsTables();
+        well.lines[lineIndex].openingQty = qty;
+
         updateOpeningStockSummary();
-    }
-
-    function trimWellQtyIfNeeded(depotPackId) {
-        const stockroomSku = stockroomRows.find(sku => String(sku.depotPackId) === String(depotPackId));
-        const max = stockroomSku ? Number(stockroomSku.openingQty || 0) : 0;
-
-        barWells.forEach(well => {
-            if (!well.lines) return;
-
-            well.lines.forEach(line => {
-                if (String(line.depotPackId) === String(depotPackId) && Number(line.openingQty || 0) > max) {
-                    line.openingQty = max;
-                }
-            });
-        });
     }
 
     function buildOpeningStockPayload() {
@@ -1532,23 +1514,25 @@
     async function saveStock() {
         hideStockMessages();
 
-        const payload = buildOpeningStockPayload();
-
-        if (!payload.barId) {
-            showStockError('Please select a bar.');
-            return;
-        }
-
-        if (!payload.stockroomLines.length) {
-            showStockError('Please add at least one stockroom SKU with opening quantity greater than zero.');
-            return;
-        }
-
         const btn = document.getElementById('saveOpeningStockBtn');
-        btn.disabled = true;
-        btn.textContent = '⏳ Saving...';
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳ Saving...';
+        }
 
         try {
+            const payload = buildOpeningStockPayload();
+
+            if (!payload.barId) {
+                throw new Error('Please select a bar.');
+            }
+
+            if (!payload.stockroomLines.length && !payload.wellLines.length) {
+                throw new Error('Please add at least one stockroom or well SKU with opening quantity greater than zero.');
+            }
+			console.log("OPENING STOCK PAYLOAD:", payload);
+			alert("Stockroom lines: " + payload.stockroomLines.length + ", Well lines: " + payload.wellLines.length);
             const res = await fetch('/admin/opening-stock', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1567,19 +1551,25 @@
             }
 
             showStockSuccess('Opening stock saved successfully.');
-            btn.textContent = '✅ Saved';
+
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '✅ Save Again / Update Opening Stock';
+            }
 
         } catch (error) {
             showStockError(error.message || 'Failed to save opening stock.');
-            btn.disabled = false;
-            btn.textContent = '✅ Save Opening Stock';
+
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '✅ Save Opening Stock';
+            }
         }
     }
 
     function resetOpeningStockForm() {
         stockroomRows = [];
-        barWells = [];
-        allCatalogSkus = [];
+        barWells.forEach(well => well.lines = []);
 
         document.getElementById('skuSearchInput').value = '';
         document.getElementById('skuSuggestions').style.display = 'none';
@@ -1590,8 +1580,10 @@
         hideStockMessages();
 
         const btn = document.getElementById('saveOpeningStockBtn');
-        btn.disabled = false;
-        btn.textContent = '✅ Save Opening Stock';
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '✅ Save Opening Stock';
+        }
     }
 
     function updateOpeningStockSummary() {
@@ -1612,7 +1604,7 @@
         });
 
         document.getElementById('summarySelectedBar').textContent = `Bar: ${selectedText}`;
-        document.getElementById('summarySkuCount').textContent = `SKUs: ${skuCount}`;
+        document.getElementById('summarySkuCount').textContent = `Stockroom SKUs: ${skuCount}`;
         document.getElementById('summaryStockroomUnits').textContent = `Stockroom Units: ${stockroomUnits}`;
         document.getElementById('summaryWellUnits').textContent = `Well Units: ${wellUnits}`;
     }

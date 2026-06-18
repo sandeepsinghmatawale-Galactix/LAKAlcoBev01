@@ -57,10 +57,14 @@ public class InventorySessionService {
                     .findBySessionSessionId(previousSession.get().getSessionId());
 
             // Build map of depotBrandSizeId → closingStock from previous session
+         // Build map of depotBrandSizeId → closingStock from previous session
             Map<Long, Integer> closingMap = previousStocks.stream()
+                    .filter(s -> s.getDepotBrandSizeId() != null)
+                    .filter(s -> s.getDepotBrandSizeId() > 0)
                     .collect(Collectors.toMap(
                             StockroomInventory::getDepotBrandSizeId,
-                            s -> s.getClosingStock() != null ? s.getClosingStock() : 0
+                            s -> s.getClosingStock() != null ? s.getClosingStock() : 0,
+                            (existing, replacement) -> existing
                     ));
 
             List<BarProductPricing> assignedProducts = productPricingRepo.findByBarId(barId);

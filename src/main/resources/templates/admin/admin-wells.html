@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Manage Wells</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+    font-family:Arial,sans-serif;
+    margin:0;
+    background:#f4f6f9;
+    color:#333;
+}
+
+header{
+    background:white;
+    padding:16px 30px;
+    border-bottom:1px solid #ddd;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+main{
+    padding:30px;
+    max-width:1100px;
+    margin:auto;
+}
+
+.page-title{
+    margin-bottom:24px;
+}
+
+.page-title h2{
+    margin:0;
+    font-size:22px;
+}
+
+.page-title p{
+    margin:6px 0 0;
+    color:#777;
+    font-size:13px;
+}
+
+.card{
+    background:white;
+    border:1px solid #e0e0e0;
+    border-radius:10px;
+    padding:22px;
+    margin-bottom:20px;
+    box-shadow:0 2px 6px rgba(0,0,0,.05);
+}
+
+.card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+}
+
+.card-header h3{
+    margin:0;
+    font-size:16px;
+}
+
+.badge{
+    padding:4px 10px;
+    border-radius:14px;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.badge-active{
+    background:#e6f4ea;
+    color:#2d8e47;
+}
+
+.badge-inactive{
+    background:#fce8e6;
+    color:#c5221f;
+}
+
+.well-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:14px;
+}
+
+.well-card{
+    border:1px solid #e5e5e5;
+    border-radius:8px;
+    padding:16px;
+    background:#fafafa;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.well-name{
+    font-weight:bold;
+    font-size:14px;
+}
+
+.well-meta{
+    color:#888;
+    font-size:12px;
+    margin-top:4px;
+}
+
+.btn{
+    border:none;
+    border-radius:5px;
+    padding:8px 14px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:13px;
+}
+
+.btn-blue{background:#1a73e8;color:white}
+.btn-green{background:#34a853;color:white}
+.btn-red{background:#ea4335;color:white}
+.btn-yellow{background:#fbbc04;color:#333}
+.btn-gray{background:#f1f3f4;color:#333}
+
+.add-row{
+    display:flex;
+    gap:10px;
+}
+
+.add-row input{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid #ccc;
+    border-radius:5px;
+    font-size:14px;
+}
+
+.empty{
+    padding:24px;
+    text-align:center;
+    color:#999;
+    border:1px dashed #ddd;
+    border-radius:8px;
+    background:#fafafa;
+}
+
+.actions{
+    margin-top:20px;
+    display:flex;
+    justify-content:flex-end;
+}
+
+.alert{
+    display:none;
+    padding:12px 16px;
+    border-radius:6px;
+    margin-bottom:18px;
+    font-weight:bold;
+}
+
+.alert-success{
+    background:#e6f4ea;
+    color:#2d8e47;
+}
+
+.alert-error{
+    background:#fce8e6;
+    color:#c5221f;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <strong>⚙️ Global Management Console</strong>
+        <div style="font-size:12px;color:#888;">Well Management</div>
+    </div>
+
+    <button class="btn btn-gray" onclick="window.location='/admin/dashboard'">
+        ← Back to Dashboard
+    </button>
+</header>
+
+<main>
+
+   <input type="hidden" id="barId" th:value="${bar.barId}">
+
+    <div class="page-title">
+		<h2>
+		    🍺 Manage Wells —
+		    <span th:text="${bar.barName}">Bar Name</span>
+		</h2>
+
+		<p>
+		    Bar ID:
+		    <b th:text="${bar.barId}">1</b>
+		    · Activate, deactivate, and add service wells/counters for this bar.
+		</p>
+    </div>
+
+    <div id="successMsg" class="alert alert-success"></div>
+    <div id="errorMsg" class="alert alert-error"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Active Wells</h3>
+            <span id="activeCount" class="badge badge-active">0 Active</span>
+        </div>
+
+        <div id="activeWells" class="well-grid"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Inactive Wells</h3>
+            <span id="inactiveCount" class="badge badge-inactive">0 Inactive</span>
+        </div>
+
+        <div id="inactiveWells" class="well-grid"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Add New Well</h3>
+        </div>
+
+        <div class="add-row">
+            <input type="text" id="wellName" placeholder="Example: Main Counter, Lounge Bar, Rooftop Well">
+            <button class="btn btn-blue" onclick="addWell()">＋ Add Well</button>
+        </div>
+    </div>
+
+</main>
+
+<script>
+const barId = document.getElementById('barId').value;
+
+function showSuccess(msg){
+    const el = document.getElementById('successMsg');
+    el.textContent = '✅ ' + msg;
+    el.style.display = 'block';
+    document.getElementById('errorMsg').style.display = 'none';
+}
+
+function showError(msg){
+    const el = document.getElementById('errorMsg');
+    el.textContent = '❌ ' + msg;
+    el.style.display = 'block';
+    document.getElementById('successMsg').style.display = 'none';
+}
+
+function loadWells(){
+    fetch('/admin/api/wells/' + barId)
+        .then(r => {
+            if(!r.ok) throw new Error('Failed to load wells');
+            return r.json();
+        })
+        .then(renderWells)
+        .catch(e => showError(e.message));
+}
+
+function renderWells(data){
+    const active = data.filter(w => w.active);
+    const inactive = data.filter(w => !w.active);
+
+    document.getElementById('activeCount').textContent = active.length + ' Active';
+    document.getElementById('inactiveCount').textContent = inactive.length + ' Inactive';
+
+    renderList('activeWells', active, true);
+    renderList('inactiveWells', inactive, false);
+}
+
+function renderList(containerId, wells, isActive){
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    if(wells.length === 0){
+        container.innerHTML = `<div class="empty">No ${isActive ? 'active' : 'inactive'} wells found.</div>`;
+        return;
+    }
+
+    wells.forEach(well => {
+        const card = document.createElement('div');
+        card.className = 'well-card';
+
+        card.innerHTML = `
+            <div>
+                <div class="well-name">${escapeHtml(well.wellName)}</div>
+                <div class="well-meta">Well ID: ${well.wellId}</div>
+            </div>
+            <button class="btn ${isActive ? 'btn-red' : 'btn-green'}"
+                    onclick="${isActive ? 'deactivateWell' : 'activateWell'}(${well.wellId})">
+                ${isActive ? 'Deactivate' : 'Activate'}
+            </button>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function addWell(){
+    const input = document.getElementById('wellName');
+    const wellName = input.value.trim();
+
+    if(!wellName){
+        showError('Please enter well name.');
+        return;
+    }
+
+    fetch('/admin/api/wells', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            barId:Number(barId),
+            wellName:wellName
+        })
+    })
+    .then(r => {
+        if(!r.ok) throw new Error('Failed to add well');
+        input.value = '';
+        showSuccess('Well added successfully.');
+        loadWells();
+    })
+    .catch(e => showError(e.message));
+}
+
+function activateWell(id){
+    fetch('/admin/api/wells/' + id + '/activate', {method:'PATCH'})
+        .then(r => {
+            if(!r.ok) throw new Error('Failed to activate well');
+            showSuccess('Well activated.');
+            loadWells();
+        })
+        .catch(e => showError(e.message));
+}
+
+function deactivateWell(id){
+    fetch('/admin/api/wells/' + id + '/deactivate', {method:'PATCH'})
+        .then(r => {
+            if(!r.ok) throw new Error('Failed to deactivate well');
+            showSuccess('Well deactivated.');
+            loadWells();
+        })
+        .catch(e => showError(e.message));
+}
+
+function escapeHtml(value){
+    return String(value ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+}
+
+loadWells();
+</script>
+
+</body>
+</html>

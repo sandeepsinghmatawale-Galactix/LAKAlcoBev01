@@ -23,4 +23,10 @@ public class Well {
     
     @Column(name = "bar_id", nullable = false)
     private Long barId;
+    
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
+    
+    
+    
 }

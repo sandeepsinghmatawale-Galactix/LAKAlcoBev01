@@ -3,6 +3,7 @@ package com.barinventory.admin.services;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -90,14 +91,30 @@ public class AdminOnboardingService {
      subscriptionRepository.save(sub);
 
      // 4. Create Wells
+  // 4. Create Wells
      Map<String, Long> wellNameToId = new HashMap<>();
+
      if (req.getWellNames() != null) {
          for (String wellName : req.getWellNames()) {
-             Well well = new Well();
-             well.setWellName(wellName);
-             well.setBarId(barId);
-             well = wellRepository.save(well);
-             wellNameToId.put(wellName, well.getWellId());
+
+             if (wellName == null || wellName.isBlank()) {
+                 continue;
+             }
+
+             String cleanedWellName = wellName.trim();
+
+             Optional<Well> existingWell =
+                     wellRepository.findByBarIdAndWellNameIgnoreCase(barId, cleanedWellName);
+
+             Well well = existingWell.orElseGet(() -> {
+                 Well newWell = new Well();
+                 newWell.setWellName(cleanedWellName);
+                 newWell.setBarId(barId);
+                 newWell.setActive(true);
+                 return wellRepository.save(newWell);
+             });
+
+             wellNameToId.put(cleanedWellName, well.getWellId());
          }
      }
 

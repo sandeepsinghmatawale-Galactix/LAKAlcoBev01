@@ -110,5 +110,14 @@ public class AdminMvcController {
         model.addAttribute("bar", barService.getBarById(barId));
         return "admin/admin-opening-stock";
     }
-    
+    @GetMapping("/wells")
+    public String manageWellsPage(
+            @RequestParam Long barId,
+            Model model) {
+
+        model.addAttribute("barId", barId);
+        model.addAttribute("bar", barService.getBarById(barId));
+
+        return "admin/admin-wells";
+    }
 }
