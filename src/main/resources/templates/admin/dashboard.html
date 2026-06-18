@@ -34,9 +34,7 @@
             color: #999;
         }
 
-        main {
-            padding: 30px;
-        }
+        main { padding: 30px; }
 
         .stats {
             display: flex;
@@ -91,13 +89,8 @@
             border-bottom-color: #1a73e8;
         }
 
-        .tab-pane {
-            display: none;
-        }
-
-        .tab-pane.active {
-            display: block;
-        }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
 
         .btn-primary {
             background: #1a73e8;
@@ -110,9 +103,7 @@
             font-weight: bold;
         }
 
-        .btn-primary:hover {
-            background: #1557b0;
-        }
+        .btn-primary:hover { background: #1557b0; }
 
         .btn-success {
             background: #34a853;
@@ -125,9 +116,7 @@
             font-weight: bold;
         }
 
-        .btn-success:hover {
-            background: #2d8e47;
-        }
+        .btn-success:hover { background: #2d8e47; }
 
         .btn-warning {
             background: #fbbc04;
@@ -151,13 +140,9 @@
             font-weight: bold;
         }
 
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
+        .btn-danger:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
         }
 
         .form-panel {
@@ -166,14 +151,12 @@
             border-radius: 8px;
             border: 1px solid #e0e0e0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            max-width: 700px;
+            max-width: 760px;
             margin-bottom: 30px;
             display: none;
         }
 
-        .form-panel.open {
-            display: block;
-        }
+        .form-panel.open { display: block; }
 
         .form-grid {
             display: grid;
@@ -187,9 +170,7 @@
             gap: 5px;
         }
 
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
+        .form-group.full { grid-column: 1 / -1; }
 
         .form-group label {
             font-size: 13px;
@@ -236,9 +217,7 @@
             margin-top: 20px;
         }
 
-        .btn-submit:hover {
-            background: #1557b0;
-        }
+        .btn-submit:hover { background: #1557b0; }
 
         .btn-submit:disabled,
         .btn-primary:disabled,
@@ -260,9 +239,7 @@
             font-size: 14px;
         }
 
-        thead {
-            background: #f8f9fa;
-        }
+        thead { background: #f8f9fa; }
 
         th {
             padding: 12px 16px;
@@ -279,13 +256,8 @@
             vertical-align: middle;
         }
 
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background: #fafafa;
-        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
 
         .badge {
             padding: 3px 10px;
@@ -340,9 +312,7 @@
             justify-content: center;
         }
 
-        .modal-overlay.open {
-            display: flex;
-        }
+        .modal-overlay.open { display: flex; }
 
         .modal {
             background: white;
@@ -353,9 +323,7 @@
             overflow-y: auto;
         }
 
-        .modal h3 {
-            margin: 0 0 20px;
-        }
+        .modal h3 { margin: 0 0 20px; }
 
         .modal-actions {
             display: flex;
@@ -364,7 +332,40 @@
             margin-top: 20px;
         }
 
-        /* Opening stock new UX */
+        .onboard-wells-box {
+            border: 1px solid #e0e0e0;
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .onboard-well-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 40px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .onboard-well-label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .onboard-well-input {
+            padding: 9px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .onboard-help {
+            font-size: 12px;
+            color: #777;
+            margin-top: 8px;
+        }
+
         .os-card {
             background: white;
             border-radius: 8px;
@@ -399,9 +400,7 @@
             font-size: 14px;
         }
 
-        .search-box {
-            position: relative;
-        }
+        .search-box { position: relative; }
 
         .suggestions {
             position: absolute;
@@ -424,9 +423,7 @@
             border-bottom: 1px solid #f0f0f0;
         }
 
-        .suggestion-item:hover {
-            background: #f8f9fa;
-        }
+        .suggestion-item:hover { background: #f8f9fa; }
 
         .suggestion-title {
             font-weight: bold;
@@ -475,13 +472,8 @@
             border-bottom-color: #1a73e8;
         }
 
-        .os-inner-pane {
-            display: none;
-        }
-
-        .os-inner-pane.active {
-            display: block;
-        }
+        .os-inner-pane { display: none; }
+        .os-inner-pane.active { display: block; }
 
         .os-table {
             width: 100%;
@@ -537,12 +529,6 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
-        .max-note {
-            font-size: 11px;
-            color: #777;
-            margin-top: 2px;
-        }
-
         .empty-state {
             background: white;
             padding: 30px;
@@ -558,13 +544,9 @@
         }
 
         @media (max-width: 900px) {
-            .stats {
-                flex-direction: column;
-            }
-
-            .os-toolbar {
-                grid-template-columns: 1fr;
-            }
+            .stats { flex-direction: column; }
+            .os-toolbar { grid-template-columns: 1fr; }
+            .onboard-well-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -594,7 +576,6 @@
         ✅ Opening stock seeded successfully. Bar is ready for operations.
     </div>
 
-    <!-- Stats -->
     <div class="stats">
         <div class="stat-card">
             <h3>Total Bars</h3>
@@ -612,14 +593,12 @@
         </div>
     </div>
 
-    <!-- Main Tabs -->
     <div class="tabs">
         <button type="button" class="tab-btn active" onclick="switchTab(event,'bars')">🏪 Bars</button>
         <button type="button" class="tab-btn" onclick="switchTab(event,'stock')">📦 Opening Stock</button>
         <button type="button" class="tab-btn" onclick="switchTab(event,'brands')">🍾 Brands</button>
     </div>
 
-    <!-- Bars Tab -->
     <div id="tab-bars" class="tab-pane active">
         <div style="display:flex;gap:12px;margin-bottom:20px;">
             <button type="button" class="btn-success" onclick="togglePanel('onboardPanel')">
@@ -630,7 +609,12 @@
         <div id="onboardPanel" class="form-panel">
             <h2 style="margin:0 0 20px;">Onboard New Bar</h2>
 
-            <form th:action="@{/admin/onboard}" th:object="${onboardRequest}" method="post" autocomplete="off">
+            <form th:action="@{/admin/onboard}"
+                  th:object="${onboardRequest}"
+                  method="post"
+                  autocomplete="off"
+                  onsubmit="syncOnboardWellsRaw()">
+
                 <input type="text" style="display:none;" aria-hidden="true"/>
                 <input type="password" style="display:none;" aria-hidden="true"/>
 
@@ -724,8 +708,39 @@
                     <div class="section-title">🍺 Wells Setup</div>
 
                     <div class="form-group full">
-                        <label>Well Names (comma separated)</label>
-                        <input type="text" th:field="*{wellNamesRaw}" placeholder="Well 1, Well 2, Bar Counter"/>
+                        <label>Service Wells / Counters</label>
+
+                        <input type="hidden" th:field="*{wellNamesRaw}" id="wellNamesRaw"/>
+
+                        <div class="onboard-wells-box">
+                            <div id="onboardWellsContainer" style="display:flex;flex-direction:column;gap:10px;">
+                                <div class="onboard-well-row">
+                                    <span class="onboard-well-label">Well 1</span>
+                                    <input type="text"
+                                           class="onboard-well-input"
+                                           placeholder="Example: Main Counter"
+                                           value="Well 1"
+                                           oninput="syncOnboardWellsRaw()"/>
+                                    <button type="button"
+                                            class="btn-danger"
+                                            onclick="removeOnboardWellRow(this)"
+                                            disabled>
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="button"
+                                    class="btn-primary"
+                                    style="margin-top:10px;padding:8px 14px;font-size:13px;"
+                                    onclick="addOnboardWellRow()">
+                                + Add More Well
+                            </button>
+
+                            <div class="onboard-help">
+                                Add wells/counters for this bar. Example: Main Bar, Lounge, Rooftop Counter.
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -793,13 +808,14 @@
                                     onclick="openOpeningStockForBar(this.dataset.barId)">
                                 📦 Stock
                             </button>
-							<button type="button"
-							        class="btn-primary"
-							        style="font-size:12px;padding:6px 12px;"
-							        th:data-bar-id="${bar.barId}"
-							        onclick="window.location='/admin/wells?barId=' + this.dataset.barId">
-							    🍺 Wells
-							</button>
+
+                            <button type="button"
+                                    class="btn-primary"
+                                    style="font-size:12px;padding:6px 12px;"
+                                    th:data-bar-id="${bar.barId}"
+                                    onclick="window.location='/admin/wells?barId=' + this.dataset.barId">
+                                🍺 Wells
+                            </button>
                         </td>
                     </tr>
 
@@ -813,7 +829,6 @@
         </div>
     </div>
 
-    <!-- Opening Stock Tab -->
     <div id="tab-stock" class="tab-pane">
         <div id="stockSuccessMsg" class="alert-success os-status-message"></div>
         <div id="stockErrorMsg" class="alert-error os-status-message"></div>
@@ -895,7 +910,7 @@
             <div id="os-inner-wells" class="os-inner-pane">
                 <div id="wellsContainer">
                     <div class="empty-state">
-                        Select a bar and add stockroom SKUs first.
+                        Select a bar and load wells first.
                     </div>
                 </div>
             </div>
@@ -911,7 +926,6 @@
         </div>
     </div>
 
-    <!-- Brands Tab -->
     <div id="tab-brands" class="tab-pane">
         <div style="display:flex;gap:12px;margin-bottom:20px;">
             <button type="button" class="btn-success" onclick="window.location='/admin/catalog/brands/new'">
@@ -929,7 +943,6 @@
     </div>
 </main>
 
-<!-- Edit Bar Modal -->
 <div id="editBarModal" class="modal-overlay">
     <div class="modal">
         <h3>✏️ Edit Bar</h3>
@@ -962,7 +975,6 @@
     </div>
 </div>
 
-<!-- Edit Subscription Modal -->
 <div id="editSubModal" class="modal-overlay">
     <div class="modal">
         <h3>📅 Edit Subscription</h3>
@@ -1006,12 +1018,16 @@
         </div>
     </div>
 </div>
+
 <script>
     let activeBarId = null;
-
     let allCatalogSkus = [];
     let barWells = [];
     let stockroomRows = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        syncOnboardWellsRaw();
+    });
 
     function switchTab(event, name) {
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -1041,6 +1057,58 @@
         if (!field || !customDates) return;
 
         customDates.style.display = field.value === 'CUSTOM' ? 'block' : 'none';
+    }
+
+    function addOnboardWellRow() {
+        const container = document.getElementById('onboardWellsContainer');
+        if (!container) return;
+
+        const count = container.querySelectorAll('.onboard-well-row').length + 1;
+
+        const row = document.createElement('div');
+        row.className = 'onboard-well-row';
+
+        row.innerHTML = `
+            <span class="onboard-well-label">Well ${count}</span>
+            <input type="text"
+                   class="onboard-well-input"
+                   placeholder="Example: Lounge Counter"
+                   value="Well ${count}"
+                   oninput="syncOnboardWellsRaw()"/>
+            <button type="button"
+                    class="btn-danger"
+                    onclick="removeOnboardWellRow(this)">
+                ×
+            </button>
+        `;
+
+        container.appendChild(row);
+        syncOnboardWellsRaw();
+    }
+
+    function removeOnboardWellRow(button) {
+        const row = button.closest('.onboard-well-row');
+        if (row) row.remove();
+
+        const rows = document.querySelectorAll('#onboardWellsContainer .onboard-well-row');
+
+        rows.forEach((r, index) => {
+            const label = r.querySelector('.onboard-well-label');
+            if (label) label.textContent = 'Well ' + (index + 1);
+        });
+
+        syncOnboardWellsRaw();
+    }
+
+    function syncOnboardWellsRaw() {
+        const hidden = document.getElementById('wellNamesRaw');
+        if (!hidden) return;
+
+        const values = Array.from(document.querySelectorAll('.onboard-well-input'))
+            .map(input => input.value.trim())
+            .filter(value => value.length > 0);
+
+        hidden.value = values.join(',');
     }
 
     function switchOpeningStockTab(event, name) {
@@ -1286,7 +1354,7 @@
         }
 
         if (barWells.length === 0) {
-            container.innerHTML = '<div class="empty-state">No wells found for this bar.</div>';
+            container.innerHTML = '<div class="empty-state">No active wells found for this bar.</div>';
             return;
         }
 
@@ -1531,8 +1599,7 @@
             if (!payload.stockroomLines.length && !payload.wellLines.length) {
                 throw new Error('Please add at least one stockroom or well SKU with opening quantity greater than zero.');
             }
-			console.log("OPENING STOCK PAYLOAD:", payload);
-			alert("Stockroom lines: " + payload.stockroomLines.length + ", Well lines: " + payload.wellLines.length);
+
             const res = await fetch('/admin/opening-stock', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
